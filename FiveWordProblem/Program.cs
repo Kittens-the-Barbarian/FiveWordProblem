@@ -243,7 +243,6 @@ namespace FiveWordProblem
                         //Sorts the dictionary by the uint representations of the word. Every anagram of the same length should have the same number.
                         //Anagrams with double letters could have the same number as words of shorter lengths, but this is not important here as this
                         //problem only concerns 5 letter words.
-                        //It might be better to sort this from high to low not low to high as anagrams may be more frequent among more common letters.
                         dict[i2].Sort(delegate (wordsnums c1, wordsnums c2) { return c1.bin.CompareTo(c2.bin); });
                         //Removes every word from the list that matches the number above it.
                         //Changed this to count down, to remove items from the top of the list first.
