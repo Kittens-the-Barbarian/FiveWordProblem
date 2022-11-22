@@ -825,8 +825,8 @@ namespace FiveWordProblem
                                         count++;
                                     }
                                 }
-                                count++;
                             }
+                            count++;
                         }
                     }
                     count++;
