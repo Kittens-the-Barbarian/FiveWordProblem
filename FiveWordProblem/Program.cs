@@ -363,10 +363,11 @@ namespace FiveWordProblem
             Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
             {
                 //for (int i1 = 0; i1 < dict[next0[a1]].Count; i1++)
-                Parallel.For(0, dict[next0[a1]].Count, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                //Parallel.For(0, dict[next0[a1]].Count, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                Parallel.ForEach(dict[next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
                 {
                     //Storing of the word/number combination.
-                    wordsnums word0 = dict[next0[a1]][i1];
+                    wordsnums word0 = i1;
                     uint bin1 = word0.bin;
                     //The next1 arrays are arrays that store the next two least frequently used letters in the alphabet that are still available
                     //from the remaining letters after discounting the words that have already been amassed. The second one 'pushes' it across one
@@ -411,9 +412,10 @@ namespace FiveWordProblem
                     {
                         //This is the iteration through each dictionary for each word indexed by the least common letter. It is looking through the
                         //dictionaries that match the next available letter.
-                        for (int i2 = 0; i2 < dict[next1[a2]].Count; i2++)
+                        //for (int i2 = 0; i2 < dict[next1[a2]].Count; i2++)
+                        foreach (wordsnums i2 in dict[next1[a2]])
                         {
-                            wordsnums word1 = dict[next1[a2]][i2];
+                            wordsnums word1 = i2;
                             //This 'bitwise and' operation is checking to see if any letters from the new word that overlap the former combination.
                             if ((word1.bin & bin1) == 0)
                             {
@@ -440,9 +442,10 @@ namespace FiveWordProblem
 
                                 for (int a3 = a2; a3 < next2.Length; a3++)
                                 {
-                                    for (int i3 = 0; i3 < dict[next2[a3]].Count; i3++)
+                                    //for (int i3 = 0; i3 < dict[next2[a3]].Count; i3++)
+                                    foreach (wordsnums i3 in dict[next2[a3]])
                                     {
-                                        wordsnums word2 = dict[next2[a3]][i3];
+                                        wordsnums word2 = i3;
                                         if ((word2.bin & bin2) == 0)
                                         {
                                             uint bin3 = bin2 | word2.bin;
@@ -461,9 +464,10 @@ namespace FiveWordProblem
 
                                             for (int a4 = a3; a4 < next3.Length; a4++)
                                             {
-                                                for (int i4 = 0; i4 < dict[next3[a4]].Count; i4++)
+                                                //for (int i4 = 0; i4 < dict[next3[a4]].Count; i4++)
+                                                foreach (wordsnums i4 in dict[next3[a4]])
                                                 {
-                                                    wordsnums word3 = dict[next3[a4]][i4];
+                                                    wordsnums word3 = i4;
                                                     if ((word3.bin & bin3) == 0)
                                                     {
                                                         uint bin4 = bin3 | word3.bin;
@@ -482,9 +486,10 @@ namespace FiveWordProblem
 
                                                         for (int a5 = a4; a5 < next4.Length; a5++)
                                                         {
-                                                            for (int i5 = 0; i5 < dict[next4[a5]].Count; i5++)
+                                                            //for (int i5 = 0; i5 < dict[next4[a5]].Count; i5++)
+                                                            foreach (wordsnums i5 in dict[next4[a5]])
                                                             {
-                                                                wordsnums word4 = dict[next4[a5]][i5];
+                                                                wordsnums word4 = i5;
                                                                 if ((word4.bin & bin4) == 0)
                                                                 {
                                                                     //if it reaches this point, it has identified 5 words that do not share any two
@@ -569,10 +574,11 @@ namespace FiveWordProblem
             {
 
                 //for (int i1 = 0; i1 < dict[next0[a1]].Count; i1++)
-                Parallel.For(0, dict[next0[a1]].Count, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                //Parallel.For(0, dict[next0[a1]].Count, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                Parallel.ForEach(dict[next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
                 {
                     wordsnums[] word0 = new wordsnums[wordn + 1];
-                    word0[count] = dict[next0[a1]][i1];
+                    word0[count] = i1;
                     uint bin1 = word0[count].bin;
                     addw(count, a1, bin1, word0);
                 });
@@ -585,9 +591,10 @@ namespace FiveWordProblem
             int[] next = unuseddigits(bin, max[count]);
             for (int a = start; a < next.Length; a++)
             {
-                for (int i = 0; i < dict[next[a]].Count; i++)
+                //for (int i = 0; i < dict[next[a]].Count; i++)
+                foreach (wordsnums i in dict[next[a]])
                 {
-                    word0[count] = dict[next[a]][i];
+                    word0[count] = i;
                     if ((word0[count].bin & bin) == 0)
                     {
                         uint bin1 = bin | word0[count].bin;
@@ -702,10 +709,11 @@ namespace FiveWordProblem
             Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
             {
                 //for (int i1 = 0; i1 < dict[next0[a1]].Count; i1++)
-                Parallel.For(0, dict[next0[a1]].Count, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                //Parallel.For(0, dict[next0[a1]].Count, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                Parallel.ForEach(dict[next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
                 {
                     //Storing of the word/number combination.
-                    wordsnums word0 = dict[next0[a1]][i1];
+                    wordsnums word0 = i1;
                     uint bin1 = word0.bin;
                     //int[] next1 = unuseddigits(bin1, max[1]);
                     int[] next1 = new int[max[1]];
@@ -722,9 +730,10 @@ namespace FiveWordProblem
 
                     for (int a2 = 0; a2 < next1.Length; a2++)
                     {
-                        for (int i2 = 0; i2 < dict[next1[a2]].Count; i2++)
+                        //for (int i2 = 0; i2 < dict[next1[a2]].Count; i2++)
+                        foreach (wordsnums i2 in dict[next1[a2]])
                         {
-                            wordsnums word1 = dict[next1[a2]][i2];
+                            wordsnums word1 = i2;
                             if ((word1.bin & bin1) == 0)
                             {
                                 uint bin2 = bin1 | word1.bin;
@@ -743,9 +752,10 @@ namespace FiveWordProblem
 
                                 for (int a3 = 0; a3 < next2.Length; a3++)
                                 {
-                                    for (int i3 = 0; i3 < dict[next2[a3]].Count; i3++)
+                                    //for (int i3 = 0; i3 < dict[next2[a3]].Count; i3++)
+                                    foreach (wordsnums i3 in dict[next2[a3]])
                                     {
-                                        wordsnums word2 = dict[next2[a3]][i3];
+                                        wordsnums word2 = i3;
                                         if ((word2.bin & bin2) == 0)
                                         {
                                             uint bin3 = bin2 | word2.bin;
@@ -764,9 +774,10 @@ namespace FiveWordProblem
 
                                             for (int a4 = 0; a4 < next3.Length; a4++)
                                             {
-                                                for (int i4 = 0; i4 < dict[next3[a4]].Count; i4++)
+                                                //for (int i4 = 0; i4 < dict[next3[a4]].Count; i4++)
+                                                foreach (wordsnums i4 in dict[next3[a4]])
                                                 {
-                                                    wordsnums word3 = dict[next3[a4]][i4];
+                                                    wordsnums word3 = i4;
                                                     if ((word3.bin & bin3) == 0)
                                                     {
                                                         uint bin4 = bin3 | word3.bin;
@@ -785,9 +796,10 @@ namespace FiveWordProblem
 
                                                         for (int a5 = 0; a5 < next4.Length; a5++)
                                                         {
-                                                            for (int i5 = 0; i5 < dict[next4[a5]].Count; i5++)
+                                                            //for (int i5 = 0; i5 < dict[next4[a5]].Count; i5++)
+                                                            foreach (wordsnums i5 in dict[next4[a5]])
                                                             {
-                                                                wordsnums word4 = dict[next4[a5]][i5];
+                                                                wordsnums word4 = i5;
                                                                 if ((word4.bin & bin4) == 0)
                                                                 {
                                                                     List<string> find = new List<string>();
