@@ -170,12 +170,13 @@ namespace FiveWordProblem
 
             for (int i = 0; i < rep; i++)
             {
+                Thread.Sleep(1);
                 //Creating and starting the stopwatch.
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
 
                 //Initiating that thing that probably does nothing for nothings sake.
-                TimeBeginPeriod(1);
+                //TimeBeginPeriod(1);
 
                 //Sets the letter order. bin[0] is 'a', bin[25] is 'z'. So if I set bin[0] to 25, I am saying 'a' should be treated as the last letter
                 //of the alphabet, and setting bin[25] to 0, it is saying 'z' should be set as the first letter of the alphabet.
@@ -326,18 +327,18 @@ namespace FiveWordProblem
 
                 //Stop the timer.
                 sw.Stop();
-                elapsed.Add(sw.Elapsed.TotalMilliseconds);
+                elapsed.Add(sw.Elapsed.TotalSeconds);
 
                 //Write the output to console. Optional.
                 Console.Write("Count: " + results.Count().ToString() + "\r\n");
                 Console.Write("Runs: " + elapsed.Count().ToString() + "\r\n");
                 Console.Write("Current: " + elapsed[elapsed.Count()-1].ToString() + "\r\n");
-                Console.Write("Average: " + elapsed.Average().ToString() + "\r\n");
+                Console.Write("Average: " + elapsed.Average().ToString("0.#######") + "\r\n");
                 Console.Write("Minimum: " + elapsed.Min().ToString() + "\r\n");
                 Console.Write("Maximum: " + elapsed.Max().ToString() + "\r\n");
 
                 //That thing that does nothing is now turned off.
-                TimeEndPeriod(1);
+                //TimeEndPeriod(1);
             }
         }
 
