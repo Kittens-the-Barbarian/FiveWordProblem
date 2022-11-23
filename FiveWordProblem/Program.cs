@@ -690,7 +690,6 @@ namespace FiveWordProblem
             //of times without doing up a new method. But I do feel it is potentially a good idea to have a testing area like this. What I have changed:
             //int a2 = a1, int a3 = a2, int a4 = a3, and int a5 = a4. Doing this is sometimes producing more than 538/831 results and I need to
             //investigate.
-            //
 
             int[] next0 = new int[max[0]];
             for (int i = 0; i < next0.Length; i++)
