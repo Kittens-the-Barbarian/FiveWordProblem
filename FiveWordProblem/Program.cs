@@ -71,6 +71,9 @@ namespace FiveWordProblem
         //Just a test option for the command line.
         static bool test = false;
 
+        //A counter for the iterations. The counter needs to be uncommented.
+        static uint counter = 0;
+
         //I have been getting different times when running the release build (this should be built in release mode of course to get significantly better
         //performance) with Visual Studio 2022 running and running the .exe without. In general, after 1000 tests, running without Visual Studio is
         //slower for some reason. But I see evidence it might be faster, or as fast, in the early passes and it has a faster initial boot run. For some
@@ -111,10 +114,16 @@ namespace FiveWordProblem
             //with my even zanier dictionary. You can ignore this and I may get rid of it after testing stuff out. But if you're interested,
             //basically what happens is for the first word, you consume 5 letters of the alphabet. That leaves 21 remaining that you can then use
             //for searching your second word. If you look for the first available letter, then that word will take up 5 more letters leaving 16,
-            //and then 11, and then 6. Not sure what the full combination is, it isn't 21-16-11-6, because it stores the preceding value.
+            //and then 11, and then 6. Not sure what the full combination is, it isn't 26-21-16-11-6, because it stores the preceding value. I would
+            //have thought 21, 21, 21, 21, 21.
 
+            //I should call the 'max' value the 'push' value, because that's what it is doing: it is pushing across. So you take the number of words
+            //and multiply it by the number of letters and you figure out how much less than 26 that is (how many characters will remain). So
+            //with 5*5 you know it is going to use 25 of the 26 characters, so you need to push it once. But the values are inclusive in how it is
+            //implemented, so it gets an added 1.
+            uint push = (uint)(26 - (wordn * lettern) + 1);
             for (int i = 0; i < wordn; i++)
-            { max.Add(2); }
+            { max.Add(push); }
 
             //This is handling the various command line arguments. My first time doing this.
             uint rep = 1;
@@ -209,45 +218,53 @@ namespace FiveWordProblem
 
                 //I believe it is faster to generate these lists as global variables above, then clear them each iteration.
                 dict.Clear();
-                if (File.Exists(System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt"))
-                {
-                    System.IO.StreamReader sr = new System.IO.StreamReader(System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt");
-                    for (int i2 = 0; i2 < 26; i2++)
-                    {
-                        dict.Add(new List<wordsnums>());
-                    }
-                    uint ind = 0;
-
-                    //Skips over the first commented line in the dictionary.
-                    sr.ReadLine();
-
-                    while (!sr.EndOfStream)
-                    {
-                        string word = sr.ReadLine();
-
-                        //This check is needed in case you insert a larger dictionary which I wanted to allow the user to do.
-                        if (word.Length == lettern)
-                        {
-                            //Since there are probably no words with capital letters in the file, this is unneeded.
-                            //string word2b = word.ToLower();
-                            uint bin = ConvToUInt(0, word);
-
-                            //This check is needed for all 5 letter words to check whether they have duplicate letters. If they have less than 5 bits,
-                            //it means at least 1 letter is a duplicate.
-                            if (countSetBits(bin) == lettern)
-                            {
-                                int digs = lowestdigit(bin);
-                                dict[digs].Add(new wordsnums { word = word, bin = bin });
-                                ind++;
-                            }
-                        }
-                    }
-                }
 
                 //Remove anagrams from the words if this option is chosen. This option was used by Matt Parker to save time. It is no longer necessary,
                 //but this is what people are doing for the competitive nature of it. If you were serious about the results, you would turn it off.
+                //
+                //I have since put the file loading stuff into separate operations depending on whether the anagrams are chosen. My reasoning for this is
+                //the only way I can think of to get Parallel.For to work with loading requires a ConcurrentBag variable. This list cannot be iterated
+                //so the anagrams can't be removed from the list in an seemingly efficient way. On the flipside, if I converted the ConcurrentBag to a
+                //list it would probably counter any potential gain from loading the file in parallel anyway. So for now, I will just try to integrate it
+                //for the anagram non-removal mode. However, a problem just occurred to me: how to initiate the variable as either a ConcurrentBag or List
+                //without at some stage converting them? Maybe it will require conversion between bag and list anyway.
                 if (anagrem)
                 {
+                    if (File.Exists(System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt"))
+                    {
+                        System.IO.StreamReader sr = new System.IO.StreamReader(System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt");
+                        for (int i2 = 0; i2 < 26; i2++)
+                        {
+                            dict.Add(new List<wordsnums>());
+                        }
+                        uint ind = 0;
+
+                        //Skips over the first commented line in the dictionary.
+                        sr.ReadLine();
+
+                        while (!sr.EndOfStream)
+                        {
+                            string word = sr.ReadLine();
+
+                            //This check is needed in case you insert a larger dictionary which I wanted to allow the user to do.
+                            if (word.Length == lettern)
+                            {
+                                //Since there are probably no words with capital letters in the file, this is unneeded.
+                                //string word2b = word.ToLower();
+                                uint bin = ConvToUInt(0, word);
+
+                                //This check is needed for all 5 letter words to check whether they have duplicate letters. If they have less than 5 bits,
+                                //it means at least 1 letter is a duplicate.
+                                if (countSetBits(bin) == lettern)
+                                {
+                                    int digs = lowestdigit(bin);
+                                    dict[digs].Add(new wordsnums { word = word, bin = bin });
+                                    ind++;
+                                }
+                            }
+                        }
+                    }
+
                     for (int i2 = 0; i2 < dict.Count; i2++)
                     {
                         //Sorts the dictionary by the uint representations of the word. Every anagram of the same length should have the same number.
@@ -257,6 +274,38 @@ namespace FiveWordProblem
                         //Removes every word from the list that matches the number above it.
                         //Changed this to count down, to remove items from the top of the list first.
                         for (int i3 = dict[i2].Count - 1; i3 > 0; i3--) { if (dict[i2][i3].bin == dict[i2][i3 - 1].bin) { dict[i2].RemoveAt(i3); } }
+                    }
+                }
+                else
+                {
+                    //To potentially make parallel in the future.
+                    if (File.Exists(System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt"))
+                    {
+                        System.IO.StreamReader sr = new System.IO.StreamReader(System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt");
+                        for (int i2 = 0; i2 < 26; i2++)
+                        {
+                            dict.Add(new List<wordsnums>());
+                        }
+                        uint ind = 0;
+
+                        sr.ReadLine();
+
+                        while (!sr.EndOfStream)
+                        {
+                            string word = sr.ReadLine();
+
+                            if (word.Length == lettern)
+                            {
+                                uint bin = ConvToUInt(0, word);
+
+                                if (countSetBits(bin) == lettern)
+                                {
+                                    int digs = lowestdigit(bin);
+                                    dict[digs].Add(new wordsnums { word = word, bin = bin });
+                                    ind++;
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -331,11 +380,15 @@ namespace FiveWordProblem
 
                 //Write the output to console. Optional.
                 Console.Write("Count: " + results.Count().ToString() + "\r\n");
-                Console.Write("Runs: " + elapsed.Count().ToString() + "\r\n");
+                if (counter > 0) { Console.Write("Iterations: " + counter.ToString() + "\r\n"); counter = 0; }
                 Console.Write("Current: " + elapsed[elapsed.Count()-1].ToString() + "\r\n");
-                Console.Write("Average: " + elapsed.Average().ToString("0.#######") + "\r\n");
-                Console.Write("Minimum: " + elapsed.Min().ToString() + "\r\n");
-                Console.Write("Maximum: " + elapsed.Max().ToString() + "\r\n");
+                if (rep > 1)
+                {
+                    Console.Write("Runs: " + elapsed.Count().ToString() + "\r\n");
+                    Console.Write("Average: " + elapsed.Average().ToString("0.#######") + "\r\n");
+                    Console.Write("Minimum: " + elapsed.Min().ToString() + "\r\n");
+                    Console.Write("Maximum: " + elapsed.Max().ToString() + "\r\n");
+                }
 
                 //That thing that does nothing is now turned off.
                 //TimeEndPeriod(1);
@@ -544,17 +597,22 @@ namespace FiveWordProblem
                                                                         find5.Add(hash);
                                                                     }
                                                                 }
+                                                                //counter++;
                                                             }
                                                         }
                                                     }
+                                                    //counter++;
                                                 }
                                             }
                                         }
+                                        //counter++;
                                     }
                                 }
                             }
+                            //counter++;
                         }
                     }
+                    //counter++;
                 });
             });
         }
@@ -581,6 +639,7 @@ namespace FiveWordProblem
                     word0[count] = i1;
                     uint bin1 = word0[count].bin;
                     addw(count, a1, bin1, word0);
+                    //counter++;
                 });
             });
         }
@@ -628,6 +687,7 @@ namespace FiveWordProblem
                             }
                         }
                     }
+                    //counter++;
                 }
             }
         }
@@ -693,159 +753,7 @@ namespace FiveWordProblem
 
         private static void test1()
         {
-            //This is the main method without comments that I use for testing. I wanted to test something about not remembering the previous iteration
-            //for the a# loops and I couldn't immediately think of a way to do it that didn't involve added in 'if's that get looped through millions
-            //of times without doing up a new method. But I do feel it is potentially a good idea to have a testing area like this. What I have changed:
-            //int a2 = a1, int a3 = a2, int a4 = a3, and int a5 = a4. Doing this is sometimes producing more than 538/831 results and I need to
-            //investigate.
 
-            int[] next0 = new int[max[0]];
-            for (int i = 0; i < next0.Length; i++)
-            {
-                next0[i] = i;
-            }
-
-            //for (int a1 = 0; a1 < 2; a1++)
-            Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
-            {
-                //for (int i1 = 0; i1 < dict[next0[a1]].Count; i1++)
-                //Parallel.For(0, dict[next0[a1]].Count, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
-                Parallel.ForEach(dict[next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
-                {
-                    //Storing of the word/number combination.
-                    wordsnums word0 = i1;
-                    uint bin1 = word0.bin;
-                    //int[] next1 = unuseddigits(bin1, max[1]);
-                    int[] next1 = new int[max[1]];
-                    int i = 0;
-                    for (next1[i] = 0; next1[i] < 26; next1[i]++)
-                    {
-                        int m = 1 << next1[i];
-                        if ((bin1 & m) == 0)
-                        {
-                            if (i == max[1] - 1) { break; }
-                            else { i++; next1[i] = next1[i - 1]; }
-                        }
-                    }
-
-                    for (int a2 = 0; a2 < next1.Length; a2++)
-                    {
-                        //for (int i2 = 0; i2 < dict[next1[a2]].Count; i2++)
-                        foreach (wordsnums i2 in dict[next1[a2]])
-                        {
-                            wordsnums word1 = i2;
-                            if ((word1.bin & bin1) == 0)
-                            {
-                                uint bin2 = bin1 | word1.bin;
-                                //int[] next2 = unuseddigits(bin2, max[2]);
-                                int[] next2 = new int[max[2]];
-                                i = 0;
-                                for (next2[i] = 0; next2[i] < 26; next2[i]++)
-                                {
-                                    int m = 1 << next2[i];
-                                    if ((bin2 & m) == 0)
-                                    {
-                                        if (i == max[2] - 1) { break; }
-                                        else { i++; next2[i] = next2[i - 1]; }
-                                    }
-                                }
-
-                                for (int a3 = 0; a3 < next2.Length; a3++)
-                                {
-                                    //for (int i3 = 0; i3 < dict[next2[a3]].Count; i3++)
-                                    foreach (wordsnums i3 in dict[next2[a3]])
-                                    {
-                                        wordsnums word2 = i3;
-                                        if ((word2.bin & bin2) == 0)
-                                        {
-                                            uint bin3 = bin2 | word2.bin;
-                                            //int[] next3 = unuseddigits(bin3, max[3]);
-                                            int[] next3 = new int[max[3]];
-                                            i = 0;
-                                            for (next3[i] = 0; next3[i] < 26; next3[i]++)
-                                            {
-                                                int m = 1 << next3[i];
-                                                if ((bin3 & m) == 0)
-                                                {
-                                                    if (i == max[3] - 1) { break; }
-                                                    else { i++; next3[i] = next3[i - 1]; }
-                                                }
-                                            }
-
-                                            for (int a4 = 0; a4 < next3.Length; a4++)
-                                            {
-                                                //for (int i4 = 0; i4 < dict[next3[a4]].Count; i4++)
-                                                foreach (wordsnums i4 in dict[next3[a4]])
-                                                {
-                                                    wordsnums word3 = i4;
-                                                    if ((word3.bin & bin3) == 0)
-                                                    {
-                                                        uint bin4 = bin3 | word3.bin;
-                                                        //int[] next4 = unuseddigits(bin4, max[4]);
-                                                        int[] next4 = new int[max[4]];
-                                                        i = 0;
-                                                        for (next4[i] = 0; next4[i] < 26; next4[i]++)
-                                                        {
-                                                            int m = 1 << next4[i];
-                                                            if ((bin4 & m) == 0)
-                                                            {
-                                                                if (i == max[4] - 1) { break; }
-                                                                else { i++; next4[i] = next4[i - 1]; }
-                                                            }
-                                                        }
-
-                                                        for (int a5 = 0; a5 < next4.Length; a5++)
-                                                        {
-                                                            //for (int i5 = 0; i5 < dict[next4[a5]].Count; i5++)
-                                                            foreach (wordsnums i5 in dict[next4[a5]])
-                                                            {
-                                                                wordsnums word4 = i5;
-                                                                if ((word4.bin & bin4) == 0)
-                                                                {
-                                                                    List<string> find = new List<string>();
-                                                                    find.Add(word0.word);
-                                                                    find.Add(word1.word);
-                                                                    find.Add(word2.word);
-                                                                    find.Add(word3.word);
-                                                                    find.Add(word4.word);
-                                                                    find.Sort();
-
-                                                                    StringBuilder find2 = new StringBuilder();
-                                                                    find2.Append(find[0]);
-                                                                    find2.Append(" ");
-                                                                    find2.Append(find[1]);
-                                                                    find2.Append(" ");
-                                                                    find2.Append(find[2]);
-                                                                    find2.Append(" ");
-                                                                    find2.Append(find[3]);
-                                                                    find2.Append(" ");
-                                                                    find2.Append(find[4]);
-
-                                                                    //string find2 = find[0] + " " + find[1] + " " + find[2] + " " + find[3] + " " + find[4];
-
-                                                                    string find3 = find2.ToString();
-
-                                                                    int hash = find3.GetHashCode();
-
-                                                                    if (!find5.Contains(hash))
-                                                                    {
-                                                                        results.Add(find3);
-                                                                        find5.Add(hash);
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            });
         }
     }
 }
