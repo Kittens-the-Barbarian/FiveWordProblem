@@ -691,7 +691,6 @@ namespace FiveWordProblem
             //int a2 = a1, int a3 = a2, int a4 = a3, and int a5 = a4. Doing this is sometimes producing more than 538/831 results and I need to
             //investigate.
             //
-            //I thought it would also be interesting to count the iterations.
 
             int[] next0 = new int[max[0]];
             for (int i = 0; i < next0.Length; i++)
@@ -699,13 +698,6 @@ namespace FiveWordProblem
                 next0[i] = i;
             }
 
-            //Parallel.For is for multithreaded processing. For whatever reason, doing two Parallel.For loops within one another seemed to tweak the
-            //performance. I am not entirely clear on what the nextDegreeOfParallelism is, but I don't believe it is the same as how many threads
-            //your processor has. Since there is just 2 iterations of the first loop, I have set that to 2. I seemed to get optimal performance out
-            //of setting the other to 7 times the number of processors. If you wish to use Parallel.For, you need to be mindful at least that
-            //variables need to be thread safe. Especially if you're going to alter variables, you may need to use ConcurrentBag/ConcurrentQueue/
-            //ConcurrentDictionary variables. This is my first time actually getting Parallel.For to work at significantly improving speeds! The non-
-            //parallel for loops are commented out and retained if you wish to experiment with them.
             //for (int a1 = 0; a1 < 2; a1++)
             Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
             {
