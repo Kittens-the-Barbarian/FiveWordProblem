@@ -25,6 +25,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
 using static System.Net.Mime.MediaTypeNames;
+using System.Threading.Tasks;
 
 namespace FiveWordProblem
 {
@@ -228,43 +229,45 @@ namespace FiveWordProblem
                 //list it would probably counter any potential gain from loading the file in parallel anyway. So for now, I will just try to integrate it
                 //for the anagram non-removal mode. However, a problem just occurred to me: how to initiate the variable as either a ConcurrentBag or List
                 //without at some stage converting them? Maybe it will require conversion between bag and list anyway.
-                if (anagrem)
+
+                if (File.Exists(System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt"))
                 {
-                    if (File.Exists(System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt"))
+                    System.IO.StreamReader sr = new System.IO.StreamReader(System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt");
+                    for (int i2 = 0; i2 < 26; i2++)
                     {
-                        System.IO.StreamReader sr = new System.IO.StreamReader(System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt");
-                        for (int i2 = 0; i2 < 26; i2++)
+                        dict.Add(new List<wordsnums>());
+                    }
+
+                    //Skips over the first commented line in the dictionary.
+                    sr.ReadLine();
+
+                    while (!sr.EndOfStream)
+                    {
+                        string word = sr.ReadLine();
+
+                        //This check is needed in case you insert a larger dictionary which I wanted to allow the user to do.
+                        if (word.Length == lettern)
                         {
-                            dict.Add(new List<wordsnums>());
-                        }
-                        uint ind = 0;
+                            //Since there are probably no words with capital letters in the file, this is unneeded.
+                            //string word2b = word.ToLower();
+                            uint bin = ConvToUInt(0, word);
 
-                        //Skips over the first commented line in the dictionary.
-                        sr.ReadLine();
-
-                        while (!sr.EndOfStream)
-                        {
-                            string word = sr.ReadLine();
-
-                            //This check is needed in case you insert a larger dictionary which I wanted to allow the user to do.
-                            if (word.Length == lettern)
+                            //This check is needed for all 5 letter words to check whether they have duplicate letters. If they have less than 5 bits,
+                            //it means at least 1 letter is a duplicate.
+                            if (countSetBits(bin) == lettern)
                             {
-                                //Since there are probably no words with capital letters in the file, this is unneeded.
-                                //string word2b = word.ToLower();
-                                uint bin = ConvToUInt(0, word);
-
-                                //This check is needed for all 5 letter words to check whether they have duplicate letters. If they have less than 5 bits,
-                                //it means at least 1 letter is a duplicate.
-                                if (countSetBits(bin) == lettern)
+                                int digs = lowestdigit(bin);
+                                //if (!dict[digs].Any(c => c.bin == bin))
                                 {
-                                    int digs = lowestdigit(bin);
                                     dict[digs].Add(new wordsnums { word = word, bin = bin });
-                                    ind++;
                                 }
                             }
                         }
                     }
+                }
 
+                if (anagrem)
+                {
                     for (int i2 = 0; i2 < dict.Count; i2++)
                     {
                         //Sorts the dictionary by the uint representations of the word. Every anagram of the same length should have the same number.
@@ -273,39 +276,8 @@ namespace FiveWordProblem
                         dict[i2].Sort(delegate (wordsnums c1, wordsnums c2) { return c1.bin.CompareTo(c2.bin); });
                         //Removes every word from the list that matches the number above it.
                         //Changed this to count down, to remove items from the top of the list first.
-                        for (int i3 = dict[i2].Count - 1; i3 > 0; i3--) { if (dict[i2][i3].bin == dict[i2][i3 - 1].bin) { dict[i2].RemoveAt(i3); } }
-                    }
-                }
-                else
-                {
-                    //To potentially make parallel in the future.
-                    if (File.Exists(System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt"))
-                    {
-                        System.IO.StreamReader sr = new System.IO.StreamReader(System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt");
-                        for (int i2 = 0; i2 < 26; i2++)
-                        {
-                            dict.Add(new List<wordsnums>());
-                        }
-                        uint ind = 0;
-
-                        sr.ReadLine();
-
-                        while (!sr.EndOfStream)
-                        {
-                            string word = sr.ReadLine();
-
-                            if (word.Length == lettern)
-                            {
-                                uint bin = ConvToUInt(0, word);
-
-                                if (countSetBits(bin) == lettern)
-                                {
-                                    int digs = lowestdigit(bin);
-                                    dict[digs].Add(new wordsnums { word = word, bin = bin });
-                                    ind++;
-                                }
-                            }
-                        }
+                        for (int i3 = dict[i2].Count - 1; i3 > 0; i3--)
+                        { if (dict[i2][i3].bin == dict[i2][i3 - 1].bin) { dict[i2].RemoveAt(i3); } }
                     }
                 }
 
@@ -379,15 +351,15 @@ namespace FiveWordProblem
                 elapsed.Add(sw.Elapsed.TotalSeconds);
 
                 //Write the output to console. Optional.
-                Console.Write("Count: " + results.Count().ToString() + "\r\n");
+                Console.Write("\r\nCount: " + results.Count().ToString() + "\r\n");
                 if (counter > 0) { Console.Write("Iterations: " + counter.ToString() + "\r\n"); counter = 0; }
-                Console.Write("Current: " + elapsed[elapsed.Count()-1].ToString() + "\r\n");
+                Console.Write("Current: " + elapsed[elapsed.Count()-1].ToString() + "s\r\n\r\n");
                 if (rep > 1)
                 {
                     Console.Write("Runs: " + elapsed.Count().ToString() + "\r\n");
-                    Console.Write("Average: " + elapsed.Average().ToString("0.#######") + "\r\n");
-                    Console.Write("Minimum: " + elapsed.Min().ToString() + "\r\n");
-                    Console.Write("Maximum: " + elapsed.Max().ToString() + "\r\n");
+                    Console.Write("Average: " + elapsed.Average().ToString("0.#######") + "s\r\n");
+                    Console.Write("Minimum: " + elapsed.Min().ToString() + "s\r\n");
+                    Console.Write("Maximum: " + elapsed.Max().ToString() + "s\r\n\r\n");
                 }
 
                 //That thing that does nothing is now turned off.
@@ -435,22 +407,26 @@ namespace FiveWordProblem
                     for (next1[i] = 0; next1[i] < 26; next1[i]++)
                     {
                         //This is bitshifting to the left to detect a value of 1. Since bit shifting pertains to bits, this is working on the binary.
-                        //So it starts at 1, then bit shifts to 10, then bit shifts to 100, then bit shifts to 1000, and so on. It will do this for
-                        //26 letters of the alphabet based on the order of least frequent to most frequent. Assuming a standard alphabet, and given
-                        //next1[i] is the numeric identifier for the character in the alphabet, it is shifting left firstly with 'a' (0), 'b' (1), 'c'
-                        //(2), etc. just adjusted to the the frequency 'alphabet'.
+                        //So it starts at 1, then bit shifts to 10, then bit shifts to 100, then bit shifts to 1000, and so on. Like multiplying by
+                        //10, except every 1 represents a value of 2 not 10. It will do this for 26 letters of the alphabet based on the order of
+                        //least frequent to most frequent. Assuming a standard alphabet, and given next1[i] is the numeric identifier for the character
+                        //in the alphabet, it is shifting left firstly with 'a' (0), 'b' (1), 'c' (2), etc. just adjusted to the the frequency
+                        //'alphabet'.
                         int m = 1 << next1[i];
                         //The above, 'm' is the letter in binary. The 'bin1' value is the binary value of the combinations of words to this point. The
                         //& symbol means that it is performing a 'bit and' operation on the binary representation of the word. If the binary of two
                         //1's align, it results in a value of 1: it means that letter position is occupied (used). If the bin1 value is 0, then it
                         //results in 0 (for some reason) and then enters that number as the first missing letter in the array. Then it looks for
-                        //another until i = 2.
+                        //another until i = 2. I recommend (something I haven't really done) using an online bitwise calculator to get a feel for the
+                        //way these things work. I wish I had thought of that, but I kind of just brute forced it and ocassionally debugged it until
+                        //I kind of figured it out for now.
                         if ((bin1 & m) == 0)
                         {
                             //Heck, this confused me for a bit. So it needs clarifying. The setting of the next1[i] value is done at the loop level
                             //above. It is continually set as it goes through the alphabet, 0-25. If a missing letter is found, a 1 is added to the
                             //'i' variable. This switches it from the first value (now permanently set) to the second value, to be set in the 'for'
-                            //iteration. This second value (next[1]) gets set to the same value the first one (next[0]) with next[i] = next[max1 - 1].
+                            //iteration. This second value (next[1]) gets set to the same value as the first one (next[0]) with next[i] = next[max1 - 1]
+                            //to resume from where it was detected.
                             if (i == max[1] - 1) { break; }
                             else { i++; next1[i] = next1[i - 1]; }
                         }
@@ -459,8 +435,8 @@ namespace FiveWordProblem
                     //Goes for the Parellel.For loops above but the comments are becoming too heavy. Notice how each 'for' loop within a 'for' loop
                     //has an a2 and i2. The 'a#' loops are iterations through the next1 arrays, so each of the loops have a nextimum of 2 iterations
                     //if the max# values haven't been changed. But it carries through the previous iteration count, eg. int a2 = a1. So if a1 is
-                    //shifted across 1, then so too is each subsequent operation and therefore each iteration is reduced to 1. This may potentially not
-                    //grab all results?
+                    //shifted across 1, then so too is each subsequent operation and therefore each iteration is reduced to 1. I'm not sure, but this
+                    //may potentially not grab all results?
                     for (int a2 = a1; a2 < next1.Length; a2++)
                     {
                         //This is the iteration through each dictionary for each word indexed by the least common letter. It is looking through the
@@ -476,9 +452,9 @@ namespace FiveWordProblem
                                 //representation. It will add a 1 next to each letter that was not represented in the previous word combination to
                                 //this point. 1 + 1 will be 1 and 0 + 1 will also be 1. Since it is binary, there is no 2. There is also no way of
                                 //accounting for duplicate characters, which means for anagrams (does not pertain to here) you need to do something
-                                //else but it helps immensely as a check for anagrams before looping through the letters of a word for instance.
+                                //else but it helps immensely as a check before looping through the letters of a word for instance.
                                 uint bin2 = bin1 | word1.bin;
-                                //Again, the unusuedDigits() method call has been replaced by the code here to set the next2, next3, next4, etc.
+                                //Again, the unusueddigits() method call has been replaced by the code here to set the next2, next3, next4, etc.
                                 //arrays.
                                 //int[] next2 = unuseddigits(bin2, max[2]);
                                 int[] next2 = new int[max[2]];
@@ -595,6 +571,7 @@ namespace FiveWordProblem
                                                                     {
                                                                         results.Add(find3);
                                                                         find5.Add(hash);
+                                                                        find5.OrderBy(c => c);
                                                                     }
                                                                 }
                                                                 //counter++;
@@ -619,7 +596,8 @@ namespace FiveWordProblem
 
         private static void process2()
         {
-            //This is the recursive version of the above. It appears to be significantly slower.
+            //This (process2() and addw() are the recursive version of process1(). It appears to be significantly slower.
+
             int[] next0 = new int[max[0]];
             for (int i = 0; i < next0.Length; i++)
             {
