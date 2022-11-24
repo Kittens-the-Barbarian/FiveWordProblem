@@ -694,6 +694,7 @@ namespace FiveWordProblem
                             {
                                 results.Add(find3);
                                 find5.Add(hash);
+                                find5.OrderBy(c => c);
                             }
                         }
                     }
