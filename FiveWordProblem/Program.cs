@@ -24,8 +24,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
-using static System.Net.Mime.MediaTypeNames;
-using System.Threading.Tasks;
 
 namespace FiveWordProblem
 {
@@ -109,22 +107,7 @@ namespace FiveWordProblem
         {
             List<double> elapsed = new List<double>();
 
-            //These variables set the amount of letters each next# array picks up of the available letters. By default, it is 2 for each of the 4
-            //added words to to which it pertains. I have a theory that if you grab more letters, you could grab more combinations, but it may
-            //only apply to larger dictionaries. I just basically want this here in case I want to test things out and the curious results I had
-            //with my even zanier dictionary. You can ignore this and I may get rid of it after testing stuff out. But if you're interested,
-            //basically what happens is for the first word, you consume 5 letters of the alphabet. That leaves 21 remaining that you can then use
-            //for searching your second word. If you look for the first available letter, then that word will take up 5 more letters leaving 16,
-            //and then 11, and then 6. Not sure what the full combination is, it isn't 26-21-16-11-6, because it stores the preceding value. I would
-            //have thought 21, 21, 21, 21, 21.
-
-            //I should call the 'max' value the 'push' value, because that's what it is doing: it is pushing across. So you take the number of words
-            //and multiply it by the number of letters and you figure out how much less than 26 that is (how many characters will remain). So
-            //with 5*5 you know it is going to use 25 of the 26 characters, so you need to push it once. But the values are inclusive in how it is
-            //implemented, so it gets an added 1.
-            uint push = (uint)(26 - (wordn * lettern) + 1);
-            for (int i = 0; i < wordn; i++)
-            { max.Add(push); }
+            max.Clear();
 
             //This is handling the various command line arguments. My first time doing this.
             uint rep = 1;
@@ -147,29 +130,44 @@ namespace FiveWordProblem
                                 if (args.Length > 5)
                                 {
                                     wordn = Convert.ToInt32(args[5]);
-                                    for (int i = 0; i < wordn - 5; i++)
-                                    { max.Add(2); }
-                                    max.RemoveRange(wordn, max.Count - wordn);
                                     if (args.Length > 6)
                                     {
                                         lettern = Convert.ToUInt32(args[6]);
                                         if (args.Length > 7)
                                         {
                                             if (args[7] != "0") { test = true; }
-                                            for (int i = 0; i < wordn; i++)
+                                            if (args.Length > 8)
                                             {
-                                                if (args.Length > i + 8)
+                                                for (int i = 0; i < wordn; i++)
                                                 {
-                                                    max[i] = Convert.ToUInt32(args[i + 8]);
+                                                    if (args.Length > i + 8)
+                                                    {
+                                                        max.Add(Convert.ToUInt32(args[i + 8]));
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
-                            }                           
+                            }
                         }
                     }
                 }
+            }
+
+            if (args.Length < 9)
+            {
+                //These variables set the amount of letters each next# array picks up of the available letters. By default, it is 2 for each of the 4
+                //added words to to which it pertains.
+
+                //I should call the 'max' value the 'push' value, because that's what it is doing: it is pushing across. So you take the number of words
+                //and multiply it by the number of letters and you figure out how much less than 26 that is (how many characters will remain). So
+                //with 5*5 you know it is going to use 25 of the 26 characters, so you need to push it once. But the values are inclusive in how it is
+                //implemented, so it gets an added 1.
+
+                uint push = (uint)(26 - (wordn * lettern) + 1);
+                for (int i = 0; i < wordn; i++)
+                { max.Add(push); }
             }
 
             wordn--;
@@ -222,7 +220,7 @@ namespace FiveWordProblem
 
                 //Remove anagrams from the words if this option is chosen. This option was used by Matt Parker to save time. It is no longer necessary,
                 //but this is what people are doing for the competitive nature of it. If you were serious about the results, you would turn it off.
-                //
+                
                 //I have since put the file loading stuff into separate operations depending on whether the anagrams are chosen. My reasoning for this is
                 //the only way I can think of to get Parallel.For to work with loading requires a ConcurrentBag variable. This list cannot be iterated
                 //so the anagrams can't be removed from the list in an seemingly efficient way. On the flipside, if I converted the ConcurrentBag to a
@@ -230,7 +228,9 @@ namespace FiveWordProblem
                 //for the anagram non-removal mode. However, a problem just occurred to me: how to initiate the variable as either a ConcurrentBag or List
                 //without at some stage converting them? Maybe it will require conversion between bag and list anyway.
 
-                if (File.Exists(System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt"))
+                string filename = System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt";
+
+                if (File.Exists(filename))
                 {
                     System.IO.StreamReader sr = new System.IO.StreamReader(System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt");
                     for (int i2 = 0; i2 < 26; i2++)
@@ -238,18 +238,29 @@ namespace FiveWordProblem
                         dict.Add(new List<wordsnums>());
                     }
 
-                    //Skips over the first commented line in the dictionary.
+                    //Skips over the first commented line in the dictionary. This is for the while loop, it is pointless for Parallel.ForEach loop
+                    //below. With Parallel.For I believe the word.Length = lettern thing will eliminate comments, at least if they are longer than the
+                    //target word length. If they aren't they may trigger a crash.
                     sr.ReadLine();
 
+                    //This is the lock for Parallel.For. Since running with Parallel.For and lock seemed to sacrifice a millisecond or two, I decided
+                    //to comment out all that code but retain it for further testing.
+                    //object _object = new object();
+
                     while (!sr.EndOfStream)
+                    //Parallel.ForEach(File.ReadLines(filename), line =>
                     {
+                        //The word variable for the while loop.
                         string word = sr.ReadLine();
+                        //The word variable for Parallel.ForEach.
+                        //string word = line;
 
                         //This check is needed in case you insert a larger dictionary which I wanted to allow the user to do.
                         if (word.Length == lettern)
                         {
                             //Since there are probably no words with capital letters in the file, this is unneeded.
-                            //string word2b = word.ToLower();
+                            //string word2 = word.ToLower();
+
                             uint bin = ConvToUInt(0, word);
 
                             //This check is needed for all 5 letter words to check whether they have duplicate letters. If they have less than 5 bits,
@@ -259,11 +270,29 @@ namespace FiveWordProblem
                                 int digs = lowestdigit(bin);
                                 //if (!dict[digs].Any(c => c.bin == bin))
                                 {
-                                    dict[digs].Add(new wordsnums { word = word, bin = bin });
+                                    //Lock for Parallel.For otherwise it will crash. This nullifies any point in using Parallel.For here. The problem
+                                    //is you can't perform a parallel loop on a List variable, it needs to be one of the Concurrent variables. So
+                                    //change it to a ConcurrentBag? The problem is you can't then remove anagrams, because although you can sort a
+                                    //ConcurrentBag, you can't .RemoveAt like you can a list. It might work with one of the other Concurrent variables.
+                                    //So why not just convert ConcurrentBag to List with .ToList()? Tested it, and it's too slow; it is far slower
+                                    //than what you gain by using Parallel.ForEach. Same with scanning the List for anagrams to remove them before they
+                                    //are inserted. It occurred to me to use a List variable for anagram removal and a ConcurrentBag for anagram non-
+                                    //removal. The problem then is you need to initialize two list variables of different types, and the only way I
+                                    //can think of to read those two different types of variables is to duplicate method1(), which makes this code even
+                                    //more heinously long. Could put a whole lot through methods if I weren't considering speed, but C# seems a little
+                                    //slow in handling methods. ConcurrentDictionary's might work as I am reading something now about that, but I never
+                                    //figured out dictionary variables.
+                                    
+                                    //Lock is not needed if you're using a Concurrent list.
+                                    //lock (_object)
+                                    {
+                                        //Just change .Add to .Enqueue if using a ConcurrentQueue.
+                                        dict[digs].Add(new wordsnums { word = word, bin = bin });
+                                    }
                                 }
                             }
                         }
-                    }
+                    }//);
                 }
 
                 if (anagrem)
@@ -274,8 +303,11 @@ namespace FiveWordProblem
                         //Anagrams with double letters could have the same number as words of shorter lengths, but this is not important here as this
                         //problem only concerns 5 letter words.
                         dict[i2].Sort(delegate (wordsnums c1, wordsnums c2) { return c1.bin.CompareTo(c2.bin); });
-                        //Removes every word from the list that matches the number above it.
-                        //Changed this to count down, to remove items from the top of the list first.
+                        //How you would sort it if it were a Concurrent list.
+                        //dict[i2].OrderBy(c => c.bin);
+
+                        //Removes every word from the list that matches the number below it.
+                        //It is not possible to identify the preceding value in the list with ConcurrentBag or ConcurrentQueue.
                         for (int i3 = dict[i2].Count - 1; i3 > 0; i3--)
                         { if (dict[i2][i3].bin == dict[i2][i3 - 1].bin) { dict[i2].RemoveAt(i3); } }
                     }
