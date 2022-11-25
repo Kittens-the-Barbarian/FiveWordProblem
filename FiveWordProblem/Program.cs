@@ -642,66 +642,77 @@ namespace FiveWordProblem
             //foreach (int a1 in next0)
             Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
             {
-
-                //for (int i1 = 0; i1 < dict[next0[a1]].Count; i1++)
-                //Parallel.For(0, dict[next0[a1]].Count, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
-                //foreach (wordsnums i1 in dict[wordn[0]][a1])
-                Parallel.ForEach(dict[wordn[count]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                for (int x = wordn.Count - 1; x > -1; x--)
                 {
-                    wordsnums[] word0 = new wordsnums[wordn.Count()];
-                    word0[count] = i1;
-                    uint bin1 = word0[count].bin;
-                    addw(count, a1, bin1, word0);
-                    //counter++;
-                });
+                    //for (int i1 = 0; i1 < dict[next0[a1]].Count; i1++)
+                    //Parallel.For(0, dict[next0[a1]].Count, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                    //foreach (wordsnums i1 in dict[wordn[x]][a1])
+                    Parallel.ForEach(dict[wordn[x]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                    {
+                        List<int> wordn2 = new List<int>(wordn);
+
+                        wordsnums[] word0 = new wordsnums[wordn.Count()];
+                        word0[count] = i1;
+                        uint bin1 = word0[count].bin;
+                        wordn2.RemoveAt(x);
+                        addw(count, a1, bin1, word0, wordn2);
+                        //counter++;
+                    });
+                }
             });
         }
 
-        private static void addw(int count, int start, uint bin, wordsnums[] word0)
+        private static void addw(int count, int start, uint bin, wordsnums[] word0, List<int> wordn2)
         {
             count++;
             int[] next = unuseddigits(bin, max[count]);
             for (int a = start; a < next.Length; a++)
             {
-                //for (int i = 0; i < dict[next[a]].Count; i++)
-                foreach (wordsnums i in dict[wordn[count]][next[a]])
+                for (int x = wordn2.Count - 1; x > -1; x--)
                 {
-                    word0[count] = i;
-                    if ((word0[count].bin & bin) == 0)
+                    //for (int i = 0; i < dict[next[a]].Count; i++)
+                    foreach (wordsnums i in dict[wordn2[x]][next[a]])
                     {
-                        uint bin1 = bin | word0[count].bin;
-                        if (count < wordn.Count - 1)
+                        List<int> wordn3 = new List<int>(wordn2);
+
+                        word0[count] = i;
+                        if ((word0[count].bin & bin) == 0)
                         {
-                            addw(count, a, bin1, word0);
-                        }
-                        else
-                        {
-                            List<string> find = new List<string>();
-                            for (int i0 = 0; i0 < word0.Length; i0++)
-                            { find.Add(word0[i0].word); }
-                            find.Sort();
-                            StringBuilder find2 = new StringBuilder();
-                            find2.Append(find[0]);
-                            for (int i0 = 1; i0 < find.Count; i0++)
+                            uint bin1 = bin | word0[count].bin;
+                            if (count < wordn.Count - 1)
                             {
-                                find2.Append(" ");
-                                find2.Append(find[i0]);
+                                wordn3.RemoveAt(x);
+                                addw(count, a, bin1, word0, wordn3);
                             }
-
-                            //string find2 = find[0] + " " + find[1] + " " + find[2] + " " + find[3] + " " + find[4];
-
-                            string find3 = find2.ToString();
-                            int hash = find3.GetHashCode();
-
-                            if (!find5.Contains(hash))
+                            else
                             {
-                                results.Add(find3);
-                                find5.Add(hash);
-                                find5.OrderBy(c => c);
+                                List<string> find = new List<string>();
+                                for (int i0 = 0; i0 < word0.Length; i0++)
+                                { find.Add(word0[i0].word); }
+                                find.Sort();
+                                StringBuilder find2 = new StringBuilder();
+                                find2.Append(find[0]);
+                                for (int i0 = 1; i0 < find.Count; i0++)
+                                {
+                                    find2.Append(" ");
+                                    find2.Append(find[i0]);
+                                }
+
+                                //string find2 = find[0] + " " + find[1] + " " + find[2] + " " + find[3] + " " + find[4];
+
+                                string find3 = find2.ToString();
+                                int hash = find3.GetHashCode();
+
+                                if (!find5.Contains(hash))
+                                {
+                                    results.Add(find3);
+                                    find5.Add(hash);
+                                    find5.OrderBy(c => c);
+                                }
                             }
                         }
+                        //counter++;
                     }
-                    //counter++;
                 }
             }
         }
