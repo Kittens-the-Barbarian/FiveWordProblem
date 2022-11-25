@@ -29,11 +29,11 @@ namespace FiveWordProblem
 {
     internal class Program
     {
-        //The dictionary List of List of 'wordnums'. This is a List of 'dictionaries' for each letter of the alphabet, so 26 in total (0-25). The
-        //full wordlist will be sorted into these dictionaries indexed by their least frequently occuring letter. Each word will be stored as a custom
-        //variable I have named 'wordsnums'. This variable contains the string representation of the word and the number representation of the world
-        //that we will later perform bitwise operations on.
-        static List<List<wordsnums>> dict = new List<List<wordsnums>>();
+        //The dictionary List of Lists of Lists of 'wordnums'. This is a List of 'dictionaries' for each of the required character counts for each and
+        //letter of the alphabet, so 26 in total (0-25). The full wordlist will be sorted into these dictionaries indexed by their least frequently
+        //occuring letter. Each word will be stored as a custom variable I have named 'wordsnums'. This variable contains the string representation of
+        //the word and the number representation of the word that we will later perform bitwise operations on.
+        static List<List<List<wordsnums>>> dict = new List<List<List<wordsnums>>>();
 
         //ConcurrentBag is a type of List variable that allows for parallel processing. Results are not sorted in the order they are originally threaded,
         //so will come out pretty much randomly. The below is the initiating of the results and find5 lists. Results is just for the results as you might
@@ -57,9 +57,8 @@ namespace FiveWordProblem
         static bool sort = false;
 
         //Custom word and letter numbers. This will only work with method2() and dictionary[4], so the fourth digit in the commandline needs to be set
-        //to 0 and the fifth digit in the commandline should be 4. More may be needed, see .bat file.
-        static int wordn = 5;
-        static uint lettern = 5;
+        //to 0 and the fifth digit in the commandline should be 4.
+        static List<int> wordn = new List<int>();
 
         //I explain this more later.
         static List<uint> max = new List<uint>();
@@ -105,75 +104,10 @@ namespace FiveWordProblem
 
         static void Main(string[] args)
         {
-            List<double> elapsed = new List<double>();
-
-            max.Clear();
-
-            //This is handling the various command line arguments. My first time doing this.
             uint rep = 1;
-            uint dictionary = 0;
             if (args.Length > 0)
             {
                 rep = Convert.ToUInt32(args[0]);
-                if (args.Length > 1)
-                {
-                    if (args[1] == "0") { anagrem = false; }
-                    if(args.Length > 2)
-                    {
-                        if (args[2] != "0") { sort = true; }
-                        if (args.Length > 3)
-                        {
-                            process = Convert.ToUInt32(args[3]);
-                            if (args.Length > 4)
-                            {
-                                dictionary = Convert.ToUInt32(args[4]);
-                                if (args.Length > 5)
-                                {
-                                    wordn = Convert.ToInt32(args[5]);
-                                    if (args.Length > 6)
-                                    {
-                                        lettern = Convert.ToUInt32(args[6]);
-                                        if (args.Length > 7)
-                                        {
-                                            if (args[7] != "0") { test = true; }
-                                            if (args.Length > 8)
-                                            {
-                                                for (int i = 0; i < wordn; i++)
-                                                {
-                                                    if (args.Length > i + 8)
-                                                    {
-                                                        max.Add(Convert.ToUInt32(args[i + 8]));
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (args.Length < 9)
-            {
-                //These variables set the amount of letters each next# array picks up of the available letters. By default, it is 2 for each of the 4
-                //added words to to which it pertains.
-
-                //I should call the 'max' value the 'push' value, because that's what it is doing: it is pushing across. So you take the number of words
-                //and multiply it by the number of letters and you figure out how much less than 26 that is (how many characters will remain). So
-                //with 5*5 you know it is going to use 25 of the 26 characters, so you need to push it once. But the values are inclusive in how it is
-                //implemented, so it gets an added 1.
-
-                uint push = (uint)(26 - (wordn * lettern) + 1);
-                for (int i = 0; i < wordn; i++)
-                { max.Add(push); }
-            }
-
-            wordn--;
-
-            //if(test)
-            {
             }
 
             for (int i = 0; i < rep; i++)
@@ -182,6 +116,54 @@ namespace FiveWordProblem
                 //Creating and starting the stopwatch.
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
+
+                List<double> elapsed = new List<double>();
+
+                wordn.Clear();
+
+                //This is handling the various command line arguments. My first time doing this.
+                uint dictionary = 0;
+                if (args.Length > 1)
+                {
+                    if (args[1] == "0") { anagrem = false; }
+                    if (args.Length > 2)
+                    {
+                        if (args[2] != "0") { sort = true; }
+                        if (args.Length > 3)
+                        {
+                            process = Convert.ToUInt32(args[3]);
+                            if (args.Length > 4)
+                            {
+                                dictionary = Convert.ToUInt32(args[4]);
+                                if (process == 0 && args.Length > 5)
+                                {
+                                    for (int i2 = 5; i2 < args.Length; i2++)
+                                    { wordn.Add(Convert.ToInt32(args[i2])); }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                //This sets the words to the default 5 * 5 if the words haven't been set.
+                if (wordn.Count == 0)
+                {
+                    wordn.Add(5);
+                    wordn.Add(5);
+                    wordn.Add(5);
+                    wordn.Add(5);
+                    wordn.Add(5);
+                }
+
+
+                //This determines how many characters it needs to push the scan across. If it is 5*5, they use 25 letters so you need to push it once
+                //and you add 1 to that as it is inclusive in the way it is implemented. I formerly made this custom, but I needed to free up space for
+                //a better custom word length thing and having this custom was more of a testing thing and I am skeptical about my beliefs that more
+                //combos might be found by customizing it.
+                max.Clear();
+                uint push = (uint)(26 - wordn.Sum() + 1);
+                for (int i2 = 0; i2 < wordn.Count(); i2++)
+                { max.Add(push); }
 
                 //Initiating that thing that probably does nothing for nothings sake.
                 //TimeBeginPeriod(1);
@@ -233,9 +215,13 @@ namespace FiveWordProblem
                 if (File.Exists(filename))
                 {
                     System.IO.StreamReader sr = new System.IO.StreamReader(System.IO.Directory.GetCurrentDirectory() + @"\Files\dictionary[" + dictionary.ToString() + "].txt");
-                    for (int i2 = 0; i2 < 26; i2++)
+                    for (int i2 = 0; i2 < wordn.Max(); i2++)
                     {
-                        dict.Add(new List<wordsnums>());
+                        dict.Add(new List<List<wordsnums>>());
+                        for (int i3 = 0; i3 < 26; i3++)
+                        {
+                            dict[i2].Add(new List<wordsnums>());
+                        }
                     }
 
                     //Skips over the first commented line in the dictionary. This is for the while loop, it is pointless for Parallel.ForEach loop
@@ -256,7 +242,7 @@ namespace FiveWordProblem
                         //string word = line;
 
                         //This check is needed in case you insert a larger dictionary which I wanted to allow the user to do.
-                        if (word.Length == lettern)
+                        if (wordn.Contains(word.Length))
                         {
                             //Since there are probably no words with capital letters in the file, this is unneeded.
                             //string word2 = word.ToLower();
@@ -265,7 +251,7 @@ namespace FiveWordProblem
 
                             //This check is needed for all 5 letter words to check whether they have duplicate letters. If they have less than 5 bits,
                             //it means at least 1 letter is a duplicate.
-                            if (countSetBits(bin) == lettern)
+                            if (word.Length == countSetBits(bin) && wordn.Contains(word.Length))
                             {
                                 int digs = lowestdigit(bin);
                                 //if (!dict[digs].Any(c => c.bin == bin))
@@ -287,7 +273,7 @@ namespace FiveWordProblem
                                     //lock (_object)
                                     {
                                         //Just change .Add to .Enqueue if using a ConcurrentQueue.
-                                        dict[digs].Add(new wordsnums { word = word, bin = bin });
+                                        dict[word.Length - 1][digs].Add(new wordsnums { word = word, bin = bin });
                                     }
                                 }
                             }
@@ -295,21 +281,32 @@ namespace FiveWordProblem
                     }//);
                 }
 
+                for (int i2 = 0; i2 < wordn.Count(); i2++)
+                {
+                    wordn[i2]--;
+                }
+                
                 if (anagrem)
                 {
                     for (int i2 = 0; i2 < dict.Count; i2++)
                     {
-                        //Sorts the dictionary by the uint representations of the word. Every anagram of the same length should have the same number.
-                        //Anagrams with double letters could have the same number as words of shorter lengths, but this is not important here as this
-                        //problem only concerns 5 letter words.
-                        dict[i2].Sort(delegate (wordsnums c1, wordsnums c2) { return c1.bin.CompareTo(c2.bin); });
-                        //How you would sort it if it were a Concurrent list.
-                        //dict[i2].OrderBy(c => c.bin);
+                        for (int i3 = 0; i3 < dict[i2].Count; i3++)
+                        {
+                            if (dict[i2][i3].Count > 0)
+                            {
+                                //Sorts the dictionary by the uint representations of the word. Every anagram of the same length should have the same number.
+                                //Anagrams with double letters could have the same number as words of shorter lengths, but this is not important here as this
+                                //problem only concerns 5 letter words.
+                                dict[i2][i3].Sort(delegate (wordsnums c1, wordsnums c2) { return c1.bin.CompareTo(c2.bin); });
+                                //How you would sort it if it were a Concurrent list.
+                                //dict[i2].OrderBy(c => c.bin);
 
-                        //Removes every word from the list that matches the number below it.
-                        //It is not possible to identify the preceding value in the list with ConcurrentBag or ConcurrentQueue.
-                        for (int i3 = dict[i2].Count - 1; i3 > 0; i3--)
-                        { if (dict[i2][i3].bin == dict[i2][i3 - 1].bin) { dict[i2].RemoveAt(i3); } }
+                                //Removes every word from the list that matches the number below it.
+                                //It is not possible to identify the preceding value in the list with ConcurrentBag or ConcurrentQueue.
+                                for (int i4 = dict[i2][i3].Count - 1; i4 > 0; i4--)
+                                { if (dict[i2][i3][i4].bin == dict[i2][i3][i4 - 1].bin) { dict[i2][i3].RemoveAt(i4); } }
+                            }
+                        }
                     }
                 }
 
@@ -417,11 +414,14 @@ namespace FiveWordProblem
             //ConcurrentDictionary variables. This is my first time actually getting Parallel.For to work at significantly improving speeds! The non-
             //parallel for loops are commented out and retained if you wish to experiment with them.
             //for (int a1 = 0; a1 < 2; a1++)
-            Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
+            //Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
+            //foreach (int a1 in next0)
+            Parallel.ForEach(next0, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
             {
                 //for (int i1 = 0; i1 < dict[next0[a1]].Count; i1++)
                 //Parallel.For(0, dict[next0[a1]].Count, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
-                Parallel.ForEach(dict[next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                //foreach (wordsnums i1 in dict[wordn[0]][a1])
+                Parallel.ForEach(dict[wordn[0]][a1], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
                 {
                     //Storing of the word/number combination.
                     wordsnums word0 = i1;
@@ -474,7 +474,7 @@ namespace FiveWordProblem
                         //This is the iteration through each dictionary for each word indexed by the least common letter. It is looking through the
                         //dictionaries that match the next available letter.
                         //for (int i2 = 0; i2 < dict[next1[a2]].Count; i2++)
-                        foreach (wordsnums i2 in dict[next1[a2]])
+                        foreach (wordsnums i2 in dict[wordn[1]][next1[a2]])
                         {
                             wordsnums word1 = i2;
                             //This 'bitwise and' operation is checking to see if any letters from the new word that overlap the former combination.
@@ -504,7 +504,7 @@ namespace FiveWordProblem
                                 for (int a3 = a2; a3 < next2.Length; a3++)
                                 {
                                     //for (int i3 = 0; i3 < dict[next2[a3]].Count; i3++)
-                                    foreach (wordsnums i3 in dict[next2[a3]])
+                                    foreach (wordsnums i3 in dict[wordn[2]][next2[a3]])
                                     {
                                         wordsnums word2 = i3;
                                         if ((word2.bin & bin2) == 0)
@@ -526,7 +526,7 @@ namespace FiveWordProblem
                                             for (int a4 = a3; a4 < next3.Length; a4++)
                                             {
                                                 //for (int i4 = 0; i4 < dict[next3[a4]].Count; i4++)
-                                                foreach (wordsnums i4 in dict[next3[a4]])
+                                                foreach (wordsnums i4 in dict[wordn[3]][next3[a4]])
                                                 {
                                                     wordsnums word3 = i4;
                                                     if ((word3.bin & bin3) == 0)
@@ -548,7 +548,7 @@ namespace FiveWordProblem
                                                         for (int a5 = a4; a5 < next4.Length; a5++)
                                                         {
                                                             //for (int i5 = 0; i5 < dict[next4[a5]].Count; i5++)
-                                                            foreach (wordsnums i5 in dict[next4[a5]])
+                                                            foreach (wordsnums i5 in dict[wordn[4]][next4[a5]])
                                                             {
                                                                 wordsnums word4 = i5;
                                                                 if ((word4.bin & bin4) == 0)
@@ -638,14 +638,17 @@ namespace FiveWordProblem
 
             int count = 0;
             //for (int a1 = 0; a1 < 2; a1++)
+            
+            //foreach (int a1 in next0)
             Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
             {
 
                 //for (int i1 = 0; i1 < dict[next0[a1]].Count; i1++)
                 //Parallel.For(0, dict[next0[a1]].Count, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
-                Parallel.ForEach(dict[next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                //foreach (wordsnums i1 in dict[wordn[0]][a1])
+                Parallel.ForEach(dict[wordn[count]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
                 {
-                    wordsnums[] word0 = new wordsnums[wordn + 1];
+                    wordsnums[] word0 = new wordsnums[wordn.Count()];
                     word0[count] = i1;
                     uint bin1 = word0[count].bin;
                     addw(count, a1, bin1, word0);
@@ -661,13 +664,13 @@ namespace FiveWordProblem
             for (int a = start; a < next.Length; a++)
             {
                 //for (int i = 0; i < dict[next[a]].Count; i++)
-                foreach (wordsnums i in dict[next[a]])
+                foreach (wordsnums i in dict[wordn[count]][next[a]])
                 {
                     word0[count] = i;
                     if ((word0[count].bin & bin) == 0)
                     {
                         uint bin1 = bin | word0[count].bin;
-                        if (count < wordn)
+                        if (count < wordn.Count - 1)
                         {
                             addw(count, a, bin1, word0);
                         }
