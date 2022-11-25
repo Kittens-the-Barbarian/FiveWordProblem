@@ -110,14 +110,14 @@ namespace FiveWordProblem
                 rep = Convert.ToUInt32(args[0]);
             }
 
+            List<double> elapsed = new List<double>();
+
             for (int i = 0; i < rep; i++)
             {
                 Thread.Sleep(1);
                 //Creating and starting the stopwatch.
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
-
-                List<double> elapsed = new List<double>();
 
                 wordn.Clear();
 
