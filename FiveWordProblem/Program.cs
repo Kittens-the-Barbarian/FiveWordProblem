@@ -24,6 +24,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Collections.Generic;
 
 namespace FiveWordProblem
 {
@@ -49,6 +50,10 @@ namespace FiveWordProblem
         //have taken the words_alpha_five list from another project and it is generating this number for both. In fact, I will be adding some words from
         //the other solutions Matt Parker said others had, which feature words not in this English dictionary.
         static bool anagrem = true;
+
+        static int range1 = 5;
+        static int range2 = 5;
+        static int wordsnum = 5;
 
         //Sets which operation to process: 1 = process1() without the method calls, 0 = process2() with the method calls. Anything else for test().
         static uint process = 1;
@@ -135,35 +140,70 @@ namespace FiveWordProblem
                             if (args.Length > 4)
                             {
                                 dictionary = Convert.ToUInt32(args[4]);
-                                if (process == 0 && args.Length > 5)
+                                if (args.Length > 5)
                                 {
-                                    for (int i2 = 5; i2 < args.Length; i2++)
-                                    { wordn.Add(Convert.ToInt32(args[i2])); }
+                                    range1 = Convert.ToInt32(args[5]);
+                                    if (args.Length > 6)
+                                    {
+                                        range2 = Convert.ToInt32(args[6]);
+                                        if (args.Length > 7)
+                                        {
+                                            wordsnum = Convert.ToInt32(args[7]);
+                                            if (args.Length > 8)
+                                            {
+                                                for (int i2 = 9; i2 < args.Length; i2++)
+                                                { wordn.Add(Convert.ToInt32(args[i2])); }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                //This sets the words to the default 5 * 5 if the words haven't been set.
-                if (wordn.Count == 0)
-                {
-                    wordn.Add(5);
-                    wordn.Add(5);
-                    wordn.Add(5);
-                    wordn.Add(5);
-                    wordn.Add(5);
-                }
-
-
                 //This determines how many characters it needs to push the scan across. If it is 5*5, they use 25 letters so you need to push it once
                 //and you add 1 to that as it is inclusive in the way it is implemented. I formerly made this custom, but I needed to free up space for
                 //a better custom word length thing and having this custom was more of a testing thing and I am skeptical about my beliefs that more
                 //combos might be found by customizing it.
                 max.Clear();
-                uint push = (uint)(26 - wordn.Sum() + 1);
-                for (int i2 = 0; i2 < wordn.Count(); i2++)
-                { max.Add(push); }
+                if (process != 0)
+                {
+                    for (int i2 = 0; i2 < 5; i2++)
+                    {
+                        wordn.Add(5);
+                    }
+
+                    for (int i2 = 0; i2 < 5; i2++)
+                    { max.Add(2); }
+                }
+                else
+                {
+                    int sum = 0;
+                    if (range1 != range2)
+                    {
+                        for (int i2 = range1; i2 < range2 + 1; i2++)
+                        {
+                            wordn.Add(i2);
+                        }
+
+                        for (int i2 = range1; i2 < range2 + 1; i2++)
+                        { sum += i2; }
+                        wordsnum = range2 - range1 + 1;
+                    }
+                    else
+                    {
+                        for (int i2 = 0; i2 < wordsnum; i2++)
+                        {
+                            wordn.Add(range1);
+                        }
+
+                        sum = range1 * wordsnum;
+                    }
+                    uint push = (uint)(26 - sum + 1);
+                    for (int i2 = 0; i2 < wordsnum; i2++)
+                    { max.Add(push); }
+                }
 
                 //Initiating that thing that probably does nothing for nothings sake.
                 //TimeBeginPeriod(1);
@@ -346,43 +386,49 @@ namespace FiveWordProblem
                     test1();
                 }
 
-                //Building the results into a StringBuilder variable, and sort them if the option is set.
-                StringBuilder bd = new StringBuilder();
-                if (sort)
+                if (process != 0)
                 {
-                    List<string> results2 = results.ToList();
-                    results2.Sort();
-
-                    foreach (string str in results2)
+                    //Building the results into a StringBuilder variable, and sort them if the option is set.
+                    StringBuilder bd = new StringBuilder();
+                    if (sort)
                     {
-                        if (results2.Count > 0)
+                        List<string> results2 = results.ToList();
+                        results2.Sort();
+
+                        foreach (string str in results2)
                         {
-                            bd.Append(String.Join("\r\n", str) + "\r\n");
+                            if (results2.Count > 0)
+                            {
+                                bd.Append(String.Join("\r\n", str) + "\r\n");
+                            }
                         }
                     }
-                }
-                else
-                {
-                    foreach (string str in results)
+                    else
                     {
-                        if (results.Count > 0)
+                        foreach (string str in results)
                         {
-                            bd.Append(String.Join("\r\n", str) + "\r\n");
+                            if (results.Count > 0)
+                            {
+                                bd.Append(String.Join("\r\n", str) + "\r\n");
+                            }
                         }
                     }
+
+                    //Output the results.
+                    Console.Write(bd.ToString());
                 }
 
-                //Output the results.
-                Console.Write(bd.ToString());
+                //Write the output to console. Optional.
+                Console.Write("\r\nCount: " + find5.Count().ToString() + "\r\n");
+
+                if (counter > 0) { Console.Write("Iterations: " + counter.ToString() + "\r\n"); counter = 0; }
 
                 //Stop the timer.
                 sw.Stop();
                 elapsed.Add(sw.Elapsed.TotalSeconds);
 
-                //Write the output to console. Optional.
-                Console.Write("\r\nCount: " + results.Count().ToString() + "\r\n");
-                if (counter > 0) { Console.Write("Iterations: " + counter.ToString() + "\r\n"); counter = 0; }
                 Console.Write("Current: " + elapsed[elapsed.Count()-1].ToString() + "s\r\n\r\n");
+
                 if (rep > 1)
                 {
                     Console.Write("Runs: " + elapsed.Count().ToString() + "\r\n");
@@ -413,13 +459,10 @@ namespace FiveWordProblem
             //variables need to be thread safe. Especially if you're going to alter variables, you may need to use ConcurrentBag/ConcurrentQueue/
             //ConcurrentDictionary variables. This is my first time actually getting Parallel.For to work at significantly improving speeds! The non-
             //parallel for loops are commented out and retained if you wish to experiment with them.
-            //for (int a1 = 0; a1 < 2; a1++)
-            //Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
+
             //foreach (int a1 in next0)
             Parallel.ForEach(next0, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
             {
-                //for (int i1 = 0; i1 < dict[next0[a1]].Count; i1++)
-                //Parallel.For(0, dict[next0[a1]].Count, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
                 //foreach (wordsnums i1 in dict[wordn[0]][a1])
                 Parallel.ForEach(dict[wordn[0]][a1], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
                 {
@@ -604,6 +647,7 @@ namespace FiveWordProblem
                                                                         results.Add(find3);
                                                                         find5.Add(hash);
                                                                         find5.OrderBy(c => c);
+                                                                        //Console.WriteLine(find3);
                                                                     }
                                                                 }
                                                                 //counter++;
@@ -638,26 +682,29 @@ namespace FiveWordProblem
 
             int count = 0;
             //for (int a1 = 0; a1 < 2; a1++)
-            
+           
             //foreach (int a1 in next0)
             Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
             {
+                int last = 0;
                 for (int x = wordn.Count - 1; x > -1; x--)
                 {
-                    //for (int i1 = 0; i1 < dict[next0[a1]].Count; i1++)
-                    //Parallel.For(0, dict[next0[a1]].Count, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
-                    //foreach (wordsnums i1 in dict[wordn[x]][a1])
-                    Parallel.ForEach(dict[wordn[x]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                    if (wordn[x] != last)
                     {
-                        List<int> wordn2 = new List<int>(wordn);
+                        last = wordn[x];
+                        //foreach (wordsnums i1 in dict[wordn[x]][a1])
+                        Parallel.ForEach(dict[wordn[x]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                        {
+                            List<int> wordn2 = new List<int>(wordn);
 
-                        wordsnums[] word0 = new wordsnums[wordn.Count()];
-                        word0[count] = i1;
-                        uint bin1 = word0[count].bin;
-                        wordn2.RemoveAt(x);
-                        addw(count, a1, bin1, word0, wordn2);
-                        //counter++;
-                    });
+                            wordsnums[] word0 = new wordsnums[wordn.Count()];
+                            word0[count] = i1;
+                            uint bin1 = word0[count].bin;
+                            wordn2.RemoveAt(x);
+                            addw(count, a1, bin1, word0, wordn2);
+                            //counter++;
+                        });
+                    }
                 }
             });
         }
@@ -668,50 +715,56 @@ namespace FiveWordProblem
             int[] next = unuseddigits(bin, max[count]);
             for (int a = start; a < next.Length; a++)
             {
+                int last = 0;
                 for (int x = wordn2.Count - 1; x > -1; x--)
                 {
-                    //for (int i = 0; i < dict[next[a]].Count; i++)
-                    foreach (wordsnums i in dict[wordn2[x]][next[a]])
+                    if (wordn2[x] != last)
                     {
-                        List<int> wordn3 = new List<int>(wordn2);
-
-                        word0[count] = i;
-                        if ((word0[count].bin & bin) == 0)
+                        last = wordn2[x];
+                        //for (int i = 0; i < dict[next[a]].Count; i++)
+                        foreach (wordsnums i in dict[wordn2[x]][next[a]])
                         {
-                            uint bin1 = bin | word0[count].bin;
-                            if (count < wordn.Count - 1)
+                            List<int> wordn3 = new List<int>(wordn2);
+
+                            word0[count] = i;
+                            if ((word0[count].bin & bin) == 0)
                             {
-                                wordn3.RemoveAt(x);
-                                addw(count, a, bin1, word0, wordn3);
-                            }
-                            else
-                            {
-                                List<string> find = new List<string>();
-                                for (int i0 = 0; i0 < word0.Length; i0++)
-                                { find.Add(word0[i0].word); }
-                                find.Sort();
-                                StringBuilder find2 = new StringBuilder();
-                                find2.Append(find[0]);
-                                for (int i0 = 1; i0 < find.Count; i0++)
+                                uint bin1 = bin | word0[count].bin;
+                                if (count < wordn.Count - 1)
                                 {
-                                    find2.Append(" ");
-                                    find2.Append(find[i0]);
+                                    wordn3.RemoveAt(x);
+                                    addw(count, a, bin1, word0, wordn3);
                                 }
-
-                                //string find2 = find[0] + " " + find[1] + " " + find[2] + " " + find[3] + " " + find[4];
-
-                                string find3 = find2.ToString();
-                                int hash = find3.GetHashCode();
-
-                                if (!find5.Contains(hash))
+                                else
                                 {
-                                    results.Add(find3);
-                                    find5.Add(hash);
-                                    find5.OrderBy(c => c);
+                                    List<string> find = new List<string>();
+                                    for (int i0 = 0; i0 < word0.Length; i0++)
+                                    { find.Add(word0[i0].word); }
+                                    find.Sort();
+                                    StringBuilder find2 = new StringBuilder();
+                                    find2.Append(find[0]);
+                                    for (int i0 = 1; i0 < find.Count; i0++)
+                                    {
+                                        find2.Append(" ");
+                                        find2.Append(find[i0]);
+                                    }
+
+                                    //string find2 = find[0] + " " + find[1] + " " + find[2] + " " + find[3] + " " + find[4];
+
+                                    string find3 = find2.ToString();
+                                    int hash = find3.GetHashCode();
+
+                                    if (!find5.Contains(hash))
+                                    {
+                                        //results.Add(find3);
+                                        find5.Add(hash);
+                                        find5.OrderBy(c => c);
+                                        Console.WriteLine(find3);
+                                    }
                                 }
                             }
+                            //counter++;
                         }
-                        //counter++;
                     }
                 }
             }
