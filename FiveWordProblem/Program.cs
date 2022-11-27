@@ -45,6 +45,9 @@ namespace FiveWordProblem
         static ConcurrentBag<string> results = new ConcurrentBag<string>();
         static ConcurrentBag<int> find5 = new ConcurrentBag<int>();
 
+        static string anagram = "abcdefghijklmnopqrstuvwxyz";
+        static uint anabin = 0;
+
         //Sets whether to remove anagrams or not. I would not use this is you wanted all the results, but Matt Parker and all the speediest methods I
         //believe used this as they are competing for speed. The output should be 538 results with anagrams removed and 831 with anagrams preserved. I
         //have taken the words_alpha_five list from another project and it is generating this number for both. In fact, I will be adding some words from
@@ -110,9 +113,9 @@ namespace FiveWordProblem
         static void Main(string[] args)
         {
             uint rep = 1;
-            if (args.Length > 0)
+            if (args.Length > 1)
             {
-                rep = Convert.ToUInt32(args[0]);
+                rep = Convert.ToUInt32(args[1]);
             }
 
             List<double> elapsed = new List<double>();
@@ -128,31 +131,35 @@ namespace FiveWordProblem
 
                 //This is handling the various command line arguments. My first time doing this.
                 uint dictionary = 0;
-                if (args.Length > 1)
+                if (args.Length > 0)
                 {
-                    if (args[1] == "0") { anagrem = false; }
+                    if (args[0] != "") { anagram = args[0]; }
                     if (args.Length > 2)
                     {
-                        if (args[2] != "0") { sort = true; }
+                        if (args[2] == "0") { anagrem = false; }
                         if (args.Length > 3)
                         {
-                            process = Convert.ToUInt32(args[3]);
+                            if (args[3] != "0") { sort = true; }
                             if (args.Length > 4)
                             {
-                                dictionary = Convert.ToUInt32(args[4]);
+                                process = Convert.ToUInt32(args[4]);
                                 if (args.Length > 5)
                                 {
-                                    range1 = Convert.ToInt32(args[5]);
+                                    dictionary = Convert.ToUInt32(args[5]);
                                     if (args.Length > 6)
                                     {
-                                        range2 = Convert.ToInt32(args[6]);
+                                        range1 = Convert.ToInt32(args[6]);
                                         if (args.Length > 7)
                                         {
-                                            wordsnum = Convert.ToInt32(args[7]);
+                                            range2 = Convert.ToInt32(args[7]);
                                             if (args.Length > 8)
                                             {
-                                                for (int i2 = 9; i2 < args.Length; i2++)
-                                                { wordn.Add(Convert.ToInt32(args[i2])); }
+                                                wordsnum = Convert.ToInt32(args[8]);
+                                                if (args.Length > 9)
+                                                {
+                                                    for (int i2 = 9; i2 < args.Length; i2++)
+                                                    { wordn.Add(Convert.ToInt32(args[i2])); }
+                                                }
                                             }
                                         }
                                     }
@@ -200,7 +207,7 @@ namespace FiveWordProblem
 
                         sum = range1 * wordsnum;
                     }
-                    uint push = (uint)(26 - sum + 1);
+                    uint push = (uint)(anagram.Length - sum + 1);
                     for (int i2 = 0; i2 < wordsnum; i2++)
                     { max.Add(push); }
                 }
@@ -236,6 +243,9 @@ namespace FiveWordProblem
                 bin[23] = 1;
                 bin[24] = 15;
                 bin[25] = 3;
+
+                anagram = anagram.Replace(" ", "").ToLower();
+                anabin = 67108863 ^ ConvToUInt(0, anagram);
 
                 //I believe it is faster to generate these lists as global variables above, then clear them each iteration.
                 dict.Clear();
@@ -386,7 +396,7 @@ namespace FiveWordProblem
                     test1();
                 }
 
-                if (process != 0)
+                //if (process != 0)
                 {
                     //Building the results into a StringBuilder variable, and sort them if the option is set.
                     StringBuilder bd = new StringBuilder();
@@ -468,7 +478,7 @@ namespace FiveWordProblem
                 {
                     //Storing of the word/number combination.
                     wordsnums word0 = i1;
-                    uint bin1 = word0.bin;
+                    uint bin1 = anabin | word0.bin;
                     //The next1 arrays are arrays that store the next two least frequently used letters in the alphabet that are still available
                     //from the remaining letters after discounting the words that have already been amassed. The second one 'pushes' it across one
                     //so that it grabs all 26 letters of the alphabet always, because otherwise it would only look for the first 25 and would stop
@@ -683,8 +693,8 @@ namespace FiveWordProblem
             int count = 0;
             //for (int a1 = 0; a1 < 2; a1++)
            
-            //foreach (int a1 in next0)
-            Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
+            foreach (int a1 in next0)
+            //Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
             {
                 int last = 0;
                 for (int x = wordn.Count - 1; x > -1; x--)
@@ -692,21 +702,21 @@ namespace FiveWordProblem
                     if (wordn[x] != last)
                     {
                         last = wordn[x];
-                        //foreach (wordsnums i1 in dict[wordn[x]][a1])
-                        Parallel.ForEach(dict[wordn[x]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                        foreach (wordsnums i1 in dict[wordn[x]][a1])
+                        //Parallel.ForEach(dict[wordn[x]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
                         {
                             List<int> wordn2 = new List<int>(wordn);
 
                             wordsnums[] word0 = new wordsnums[wordn.Count()];
                             word0[count] = i1;
-                            uint bin1 = word0[count].bin;
+                            uint bin1 = anabin | word0[count].bin;
                             wordn2.RemoveAt(x);
                             addw(count, a1, bin1, word0, wordn2);
                             //counter++;
-                        });
+                        }//);
                     }
                 }
-            });
+            }//);
         }
 
         private static void addw(int count, int start, uint bin, wordsnums[] word0, List<int> wordn2)
@@ -756,10 +766,10 @@ namespace FiveWordProblem
 
                                     if (!find5.Contains(hash))
                                     {
-                                        //results.Add(find3);
+                                        results.Add(find3);
                                         find5.Add(hash);
                                         find5.OrderBy(c => c);
-                                        Console.WriteLine(find3);
+                                        //Console.WriteLine(find3);
                                     }
                                 }
                             }
