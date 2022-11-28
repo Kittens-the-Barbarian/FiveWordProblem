@@ -25,6 +25,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Collections.Generic;
+using System.Security.Principal;
 
 namespace FiveWordProblem
 {
@@ -216,7 +217,8 @@ namespace FiveWordProblem
                 //TimeBeginPeriod(1);
 
                 //Sets the letter order. bin[0] is 'a', bin[25] is 'z'. So if I set bin[0] to 25, I am saying 'a' should be treated as the last letter
-                //of the alphabet, and setting bin[25] to 0, it is saying 'z' should be set as the first letter of the alphabet.
+                //of the alphabet, and setting bin[25] to 0, it is saying 'z' should be set as the first letter of the alphabet. I have switched it from
+                //an array to a list so that letters may be removed if they're not part of the anagram.
                 bin[0] = 25;
                 bin[1] = 7;
                 bin[2] = 14;
@@ -245,7 +247,21 @@ namespace FiveWordProblem
                 bin[25] = 3;
 
                 anagram = anagram.Replace(" ", "").ToLower();
-                anabin = 67108863 ^ ConvToUInt(0, anagram);
+
+                anabin = ConvToUInt(0, anagram);
+
+                int bits = countSetBits(anabin);
+
+                int[] remove = unuseddigits(anabin, 26);
+
+                for (int i2 = 0; i2 < remove.Count(); i2++)
+                {
+                    if (remove[i2] == -1) { break; }
+                    bin[Array.IndexOf(bin, remove[i2])] = -1;
+                }
+
+                anabin = 67108863 ^ anabin;
+
 
                 //I believe it is faster to generate these lists as global variables above, then clear them each iteration.
                 dict.Clear();
@@ -274,6 +290,12 @@ namespace FiveWordProblem
                         }
                     }
 
+
+                    //This checks the anagram, the letters of the alphabet if unchanged, to see if duplicate letters are being sought and if not then
+                    //exclude them from the dictionary.
+                    Boolean bits2 = false;
+                    if (bits != anagram.Length) { bits2 = true; }
+
                     //Skips over the first commented line in the dictionary. This is for the while loop, it is pointless for Parallel.ForEach loop
                     //below. With Parallel.For I believe the word.Length = lettern thing will eliminate comments, at least if they are longer than the
                     //target word length. If they aren't they may trigger a crash.
@@ -301,7 +323,7 @@ namespace FiveWordProblem
 
                             //This check is needed for all 5 letter words to check whether they have duplicate letters. If they have less than 5 bits,
                             //it means at least 1 letter is a duplicate.
-                            if (word.Length == countSetBits(bin) && wordn.Contains(word.Length))
+                            if (bin > 0 && ((bits2 || word.Length == countSetBits(bin)) && wordn.Contains(word.Length)))
                             {
                                 int digs = lowestdigit(bin);
                                 //if (!dict[digs].Any(c => c.bin == bin))
@@ -456,11 +478,7 @@ namespace FiveWordProblem
         {
             //This sets the first two letters for the first iteration. 0 would be 'a' and 1 would be 'b' in an A-Z alphabet. But because this is an
             //'alphabet' sorted by lowest frequency, these first two represent the least frequent letters.
-            int[] next0 = new int[max[0]];
-            for (int i = 0; i < next0.Length; i++)
-            {
-                next0[i] = i;
-            }
+            int[] next0 = unuseddigits(anabin, max[0]);
 
             //Parallel.For is for multithreaded processing. For whatever reason, doing two Parallel.For loops within one another seemed to tweak the
             //performance. I am not entirely clear on what the nextDegreeOfParallelism is, but I don't believe it is the same as how many threads
@@ -684,17 +702,13 @@ namespace FiveWordProblem
         {
             //This (process2() and addw() are the recursive version of process1(). It appears to be significantly slower.
 
-            int[] next0 = new int[max[0]];
-            for (int i = 0; i < next0.Length; i++)
-            {
-                next0[i] = i;
-            }
+            int[] next0 = unuseddigits(anabin, max[0]);
 
             int count = 0;
             //for (int a1 = 0; a1 < 2; a1++)
            
-            foreach (int a1 in next0)
-            //Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
+            //foreach (int a1 in next0)
+            Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
             {
                 int last = 0;
                 for (int x = wordn.Count - 1; x > -1; x--)
@@ -702,8 +716,8 @@ namespace FiveWordProblem
                     if (wordn[x] != last)
                     {
                         last = wordn[x];
-                        foreach (wordsnums i1 in dict[wordn[x]][a1])
-                        //Parallel.ForEach(dict[wordn[x]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                        //foreach (wordsnums i1 in dict[wordn[x]][a1])
+                        Parallel.ForEach(dict[wordn[x]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
                         {
                             List<int> wordn2 = new List<int>(wordn);
 
@@ -713,10 +727,10 @@ namespace FiveWordProblem
                             wordn2.RemoveAt(x);
                             addw(count, a1, bin1, word0, wordn2);
                             //counter++;
-                        }//);
+                        });
                     }
                 }
-            }//);
+            });
         }
 
         private static void addw(int count, int start, uint bin, wordsnums[] word0, List<int> wordn2)
@@ -766,9 +780,24 @@ namespace FiveWordProblem
 
                                     if (!find5.Contains(hash))
                                     {
-                                        results.Add(find3);
-                                        find5.Add(hash);
-                                        find5.OrderBy(c => c);
+                                        List<char> array = anagram.ToList();
+                                        int i2 = 0;
+                                        for (i2 = 0; i2 < find3.Length; i2++)
+                                        {
+                                            if (find3[i2] != ' ')
+                                            {
+                                                int index = array.IndexOf(find3[i2]);
+                                                if (index == -1) { i2 = -1; break; }
+                                                array.RemoveAt(index);
+                                            }
+                                        }
+
+                                        if (i2 > -1)
+                                        {
+                                            results.Add(find3);
+                                            find5.Add(hash);
+                                            find5.OrderBy(c => c);
+                                        }
                                         //Console.WriteLine(find3);
                                     }
                                 }
@@ -785,6 +814,7 @@ namespace FiveWordProblem
             {
                 int val = word[i] - 'a';
                 //Only applicable if the wordlist contained non-regular alphabet characters.
+                if (bin[val] == -1) { return 0; }
                 //if (val > -1 && val < 26)
                 {
                     r |= (uint)1 << bin[val];
@@ -798,6 +828,8 @@ namespace FiveWordProblem
         private static int[] unuseddigits(uint bin, uint len)
         {
             int[] nextdigit = new int[len];
+            for (int i2 = 0; i2 < len; i2++)
+            { nextdigit[i2] = -1; };
             int i = 0;
             for (nextdigit[i] = 0; nextdigit[i] < 26; nextdigit[i]++)
             {
@@ -808,6 +840,7 @@ namespace FiveWordProblem
                     else { i++; nextdigit[i] = nextdigit[i - 1]; }
                 }
             }
+            if (nextdigit[i] == 26) { nextdigit[i] = -1; }
             return nextdigit;
         }
 
