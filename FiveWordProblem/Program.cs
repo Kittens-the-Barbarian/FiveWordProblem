@@ -26,6 +26,7 @@ using System.Runtime.InteropServices;
 using System.Security;
 using System.Collections.Generic;
 using System.Security.Principal;
+using System.Runtime.ConstrainedExecution;
 
 namespace FiveWordProblem
 {
@@ -120,13 +121,20 @@ namespace FiveWordProblem
             }
 
             List<double> elapsed = new List<double>();
+            List<double> elapsed0 = new List<double>();
+            List<double> elapsed1 = new List<double>();
+            List<double> elapsed2 = new List<double>();
+            List<double> elapsed3 = new List<double>();
 
             for (int i = 0; i < rep; i++)
             {
                 Thread.Sleep(1);
                 //Creating and starting the stopwatch.
                 Stopwatch sw = new Stopwatch();
+                Stopwatch sw2 = new Stopwatch();
                 sw.Start();
+
+                sw2.Start();
 
                 wordn.Clear();
 
@@ -190,14 +198,25 @@ namespace FiveWordProblem
                     int sum = 0;
                     if (range1 != range2)
                     {
-                        for (int i2 = range1; i2 < range2 + 1; i2++)
+                        int rangea = 0;
+                        int rangeb = 0;
+                        if (range2 > range1)
+                        {
+                            rangea = range1;
+                            rangeb = range2;
+                        }
+                        else
+                        {
+                            rangea = range2;
+                            rangeb = range1;
+                        }
+                        for (int i2 = rangea; i2 < rangeb + 1; i2++)
                         {
                             wordn.Add(i2);
+                            sum += i2;
                         }
 
-                        for (int i2 = range1; i2 < range2 + 1; i2++)
-                        { sum += i2; }
-                        wordsnum = range2 - range1 + 1;
+                        wordsnum = rangeb - rangea + 1;
                     }
                     else
                     {
@@ -262,13 +281,17 @@ namespace FiveWordProblem
 
                 anabin = 67108863 ^ anabin;
 
+                elapsed0.Add(sw2.Elapsed.TotalSeconds);
+                sw2.Restart();
+
+                sw2.Restart();
 
                 //I believe it is faster to generate these lists as global variables above, then clear them each iteration.
                 dict.Clear();
 
                 //Remove anagrams from the words if this option is chosen. This option was used by Matt Parker to save time. It is no longer necessary,
                 //but this is what people are doing for the competitive nature of it. If you were serious about the results, you would turn it off.
-                
+
                 //I have since put the file loading stuff into separate operations depending on whether the anagrams are chosen. My reasoning for this is
                 //the only way I can think of to get Parallel.For to work with loading requires a ConcurrentBag variable. This list cannot be iterated
                 //so the anagrams can't be removed from the list in an seemingly efficient way. On the flipside, if I converted the ConcurrentBag to a
@@ -340,7 +363,7 @@ namespace FiveWordProblem
                                     //more heinously long. Could put a whole lot through methods if I weren't considering speed, but C# seems a little
                                     //slow in handling methods. ConcurrentDictionary's might work as I am reading something now about that, but I never
                                     //figured out dictionary variables.
-                                    
+
                                     //Lock is not needed if you're using a Concurrent list.
                                     //lock (_object)
                                     {
@@ -357,7 +380,7 @@ namespace FiveWordProblem
                 {
                     wordn[i2]--;
                 }
-                
+
                 if (anagrem)
                 {
                     for (int i2 = 0; i2 < dict.Count; i2++)
@@ -382,6 +405,9 @@ namespace FiveWordProblem
                     }
                 }
 
+                elapsed1.Add(sw2.Elapsed.TotalSeconds);
+                sw2.Restart();
+
                 /*
                 //This is used to output the reduced wordlist to console for creating a more efficient dictionary. Not to be used in speed testing.
                 StringBuilder bd0 = new StringBuilder();
@@ -400,6 +426,8 @@ namespace FiveWordProblem
                 break;
                 */
 
+                sw2.Restart();
+
                 results.Clear();
                 find5.Clear();
 
@@ -417,6 +445,9 @@ namespace FiveWordProblem
                 {
                     test1();
                 }
+
+                elapsed2.Add(sw2.Elapsed.TotalSeconds);
+                sw2.Restart();
 
                 //if (process != 0)
                 {
@@ -450,21 +481,34 @@ namespace FiveWordProblem
                     Console.Write(bd.ToString());
                 }
 
-                //Write the output to console. Optional.
-                Console.Write("\r\nCount: " + find5.Count().ToString() + "\r\n");
-
-                if (counter > 0) { Console.Write("Iterations: " + counter.ToString() + "\r\n"); counter = 0; }
+                sw2.Stop();
+                elapsed3.Add(sw2.Elapsed.TotalSeconds);
 
                 //Stop the timer.
                 sw.Stop();
                 elapsed.Add(sw.Elapsed.TotalSeconds);
 
-                Console.Write("Current: " + elapsed[elapsed.Count()-1].ToString() + "s\r\n\r\n");
+                //Write the output to console. Optional.
+                Console.Write("\r\n(Timings do not include this data.)\r\n");
+                Console.Write("Count: " + find5.Count().ToString() + "\r\n");
+
+                if (counter > 0) { Console.Write("Iterations: " + counter.ToString() + "\r\n"); counter = 0; }
+
+                Console.Write("Current: " + elapsed[elapsed.Count() - 1].ToString() + "s\r\n");
 
                 if (rep > 1)
                 {
                     Console.Write("Runs: " + elapsed.Count().ToString() + "\r\n");
                     Console.Write("Average: " + elapsed.Average().ToString("0.#######") + "s\r\n");
+                }
+
+                Console.Write("- presets: " + elapsed0.Average().ToString("0.#######") + "s\r\n");
+                Console.Write("- dictionary: " + elapsed1.Average().ToString("0.#######") + "s\r\n");
+                Console.Write("- processing: " + elapsed2.Average().ToString("0.#######") + "s\r\n");
+                Console.Write("- output: " + elapsed3.Average().ToString("0.#######") + "s\r\n");
+
+                if (rep > 1)
+                {
                     Console.Write("Minimum: " + elapsed.Min().ToString() + "s\r\n");
                     Console.Write("Maximum: " + elapsed.Max().ToString() + "s\r\n\r\n");
                 }
@@ -724,8 +768,13 @@ namespace FiveWordProblem
                             wordsnums[] word0 = new wordsnums[wordn.Count()];
                             word0[count] = i1;
                             uint bin1 = anabin | word0[count].bin;
-                            wordn2.RemoveAt(x);
-                            addw(count, a1, bin1, word0, wordn2);
+                            if (wordn.Count != 1)
+                            {
+                                wordn2.RemoveAt(x);
+                                addw(count, a1, bin1, word0, wordn2);
+                            }
+                            else
+                            { finalize(word0); }
                             //counter++;
                         });
                     }
@@ -761,45 +810,7 @@ namespace FiveWordProblem
                                 }
                                 else
                                 {
-                                    List<string> find = new List<string>();
-                                    for (int i0 = 0; i0 < word0.Length; i0++)
-                                    { find.Add(word0[i0].word); }
-                                    find.Sort();
-                                    StringBuilder find2 = new StringBuilder();
-                                    find2.Append(find[0]);
-                                    for (int i0 = 1; i0 < find.Count; i0++)
-                                    {
-                                        find2.Append(" ");
-                                        find2.Append(find[i0]);
-                                    }
-
-                                    //string find2 = find[0] + " " + find[1] + " " + find[2] + " " + find[3] + " " + find[4];
-
-                                    string find3 = find2.ToString();
-                                    int hash = find3.GetHashCode();
-
-                                    if (!find5.Contains(hash))
-                                    {
-                                        List<char> array = anagram.ToList();
-                                        int i2 = 0;
-                                        for (i2 = 0; i2 < find3.Length; i2++)
-                                        {
-                                            if (find3[i2] != ' ')
-                                            {
-                                                int index = array.IndexOf(find3[i2]);
-                                                if (index == -1) { i2 = -1; break; }
-                                                array.RemoveAt(index);
-                                            }
-                                        }
-
-                                        if (i2 > -1)
-                                        {
-                                            results.Add(find3);
-                                            find5.Add(hash);
-                                            find5.OrderBy(c => c);
-                                        }
-                                        //Console.WriteLine(find3);
-                                    }
+                                    finalize(word0);
                                 }
                             }
                             //counter++;
@@ -808,6 +819,50 @@ namespace FiveWordProblem
                 }
             }
         }
+
+        private static void finalize(wordsnums[] word0)
+        {
+            List<string> find = new List<string>();
+            for (int i0 = 0; i0 < word0.Length; i0++)
+            { find.Add(word0[i0].word); }
+            find.Sort();
+            StringBuilder find2 = new StringBuilder();
+            find2.Append(find[0]);
+            for (int i0 = 1; i0 < find.Count; i0++)
+            {
+                find2.Append(" ");
+                find2.Append(find[i0]);
+            }
+
+            //string find2 = find[0] + " " + find[1] + " " + find[2] + " " + find[3] + " " + find[4];
+
+            string find3 = find2.ToString();
+            int hash = find3.GetHashCode();
+
+            if (!find5.Contains(hash))
+            {
+                List<char> array = anagram.ToList();
+                int i2 = 0;
+                for (i2 = 0; i2 < find3.Length; i2++)
+                {
+                    if (find3[i2] != ' ')
+                    {
+                        int index = array.IndexOf(find3[i2]);
+                        if (index == -1) { i2 = -1; break; }
+                        array.RemoveAt(index);
+                    }
+                }
+
+                if (i2 > -1)
+                {
+                    results.Add(find3);
+                    find5.Add(hash);
+                    find5.OrderBy(c => c);
+                }
+                //Console.WriteLine(find3);
+            }
+        }
+
         private static uint ConvToUInt(uint r, string word)
         {
             for (int i = 0; i < word.Length; i++)
