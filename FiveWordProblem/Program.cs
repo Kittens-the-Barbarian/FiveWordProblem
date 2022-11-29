@@ -667,47 +667,7 @@ namespace FiveWordProblem
                                                                 wordsnums word4 = i5;
                                                                 if ((word4.bin & bin4) == 0)
                                                                 {
-                                                                    //if it reaches this point, it has identified 5 words that do not share any two
-                                                                    //letters. It then begins the admittedly slow operation of adding the words into
-                                                                    //a list, sorting that list, then storing that combination into a list that ca
-                                                                    //then be searched.
-                                                                    List<string> find = new List<string>();
-                                                                    find.Add(word0.word);
-                                                                    find.Add(word1.word);
-                                                                    find.Add(word2.word);
-                                                                    find.Add(word3.word);
-                                                                    find.Add(word4.word);
-                                                                    find.Sort();
-
-                                                                    //This stringbuilder operation did seem to improve the results a few milliseconds.
-                                                                    //If you are new to programming, strings are immutable: they cannot be edited.
-                                                                    //When you appear to edit a string, you are in fact creating new strings. So for
-                                                                    //every += or + in a string, you are doing something that needs to continually
-                                                                    //make copies of that string. StringBuilder makes it more efficient. It is
-                                                                    //especially crucial for much larger strings, but here it appears to save a few
-                                                                    //milliseconds you wouldn't otherwise notice despite needing to convert back into
-                                                                    //a string?
-                                                                    StringBuilder find2 = new StringBuilder();
-                                                                    find2.Append(find[0]);
-                                                                    find2.Append(" ");
-                                                                    find2.Append(find[1]);
-                                                                    find2.Append(" ");
-                                                                    find2.Append(find[2]);
-                                                                    find2.Append(" ");
-                                                                    find2.Append(find[3]);
-                                                                    find2.Append(" ");
-                                                                    find2.Append(find[4]);
-
-                                                                    //This is what the above StingBuilder operation would look like if you were just
-                                                                    //editing the string. I am keeping it here to perhaps test more thoroughly later
-                                                                    //on.
-                                                                    //string find2 = find[0] + " " + find[1] + " " + find[2] + " " + find[3] + " " + find[4];
-
-                                                                    //Because find2 was set as a StringBuilder, it needs to output it with .ToString().
-                                                                    string find3 = find2.ToString();
-
-                                                                    //This performs a hash calculation on the word combination.
-                                                                    int hash = find3.GetHashCode();
+                                                                    int hash = word0.word.GetHashCode() + word1.word.GetHashCode() + word2.word.GetHashCode() + word3.word.GetHashCode() + word4.word.GetHashCode();
 
                                                                     //This looks for this hash calculation in a list of stored calculations to see
                                                                     //if the combination has been entered before. If it hasn't (! means it does not
@@ -715,7 +675,38 @@ namespace FiveWordProblem
                                                                     //result to results and the hash to find5.
                                                                     if (!find5.Contains(hash))
                                                                     {
-                                                                        results.Add(find3);
+                                                                        //if it reaches this point, it has identified 5 words that do not share any two
+                                                                        //letters. It then begins the admittedly slow operation of adding the words into
+                                                                        //a list, sorting that list, then storing that combination into a list that ca
+                                                                        //then be searched.
+                                                                        List<string> find = new List<string>();
+                                                                        find.Add(word0.word);
+                                                                        find.Add(word1.word);
+                                                                        find.Add(word2.word);
+                                                                        find.Add(word3.word);
+                                                                        find.Add(word4.word);
+                                                                        find.Sort();
+
+                                                                        //This stringbuilder operation did seem to improve the results a few milliseconds.
+                                                                        //If you are new to programming, strings are immutable: they cannot be edited.
+                                                                        //When you appear to edit a string, you are in fact creating new strings. So for
+                                                                        //every += or + in a string, you are doing something that needs to continually
+                                                                        //make copies of that string. StringBuilder makes it more efficient. It is
+                                                                        //especially crucial for much larger strings, but here it appears to save a few
+                                                                        //milliseconds you wouldn't otherwise notice despite needing to convert back into
+                                                                        //a string?
+                                                                        StringBuilder find2 = new StringBuilder();
+                                                                        find2.Append(find[0]);
+                                                                        find2.Append(" ");
+                                                                        find2.Append(find[1]);
+                                                                        find2.Append(" ");
+                                                                        find2.Append(find[2]);
+                                                                        find2.Append(" ");
+                                                                        find2.Append(find[3]);
+                                                                        find2.Append(" ");
+                                                                        find2.Append(find[4]);
+
+                                                                        results.Add(find2.ToString());
                                                                         find5.Add(hash);
                                                                         find5.OrderBy(c => c);
                                                                         //Console.WriteLine(find3);
@@ -816,25 +807,24 @@ namespace FiveWordProblem
 
         private static void finalize(wordsnums[] word0)
         {
-            List<string> find = new List<string>();
-            for (int i0 = 0; i0 < word0.Length; i0++)
-            { find.Add(word0[i0].word); }
-            find.Sort();
-            StringBuilder find2 = new StringBuilder();
-            find2.Append(find[0]);
-            for (int i0 = 1; i0 < find.Count; i0++)
-            {
-                find2.Append(" ");
-                find2.Append(find[i0]);
-            }
-
-            //string find2 = find[0] + " " + find[1] + " " + find[2] + " " + find[3] + " " + find[4];
-
-            string find3 = find2.ToString();
-            int hash = find3.GetHashCode();
+            int hash = word0[0].word.GetHashCode() + word0[1].word.GetHashCode() + word0[2].word.GetHashCode() + word0[3].word.GetHashCode() + word0[4].word.GetHashCode();
 
             if (!find5.Contains(hash))
             {
+                List<string> find = new List<string>();
+                for (int i0 = 0; i0 < word0.Length; i0++)
+                { find.Add(word0[i0].word); }
+                find.Sort();
+                StringBuilder find2 = new StringBuilder();
+                find2.Append(find[0]);
+                for (int i0 = 1; i0 < find.Count; i0++)
+                {
+                    find2.Append(" ");
+                    find2.Append(find[i0]);
+                }
+
+                string find3 = find2.ToString();
+
                 int i2 = 0;
 
                 //everything up to now only checks whether the letters are in the anagram. It does not check whether the count
