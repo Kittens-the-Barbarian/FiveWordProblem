@@ -24,10 +24,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
-using System.Collections.Generic;
-using System.Security.Principal;
-using System.Runtime.ConstrainedExecution;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace FiveWordProblem
 {
@@ -532,10 +528,11 @@ namespace FiveWordProblem
             //parallel for loops are commented out and retained if you wish to experiment with them.
 
             //foreach (int a1 in next0)
-            Parallel.ForEach(next0, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
+            //Parallel.ForEach(next0, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, a1 =>
+            Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, a1 =>
             {
                 //foreach (wordsnums i1 in dict[wordn[0]][a1])
-                Parallel.ForEach(dict[wordn[0]][a1], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                Parallel.ForEach(dict[wordn[0]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
                 {
                     //Storing of the word/number combination.
                     wordsnums word0 = i1;
@@ -589,6 +586,7 @@ namespace FiveWordProblem
                         //dictionaries that match the next available letter.
                         //for (int i2 = 0; i2 < dict[next1[a2]].Count; i2++)
                         foreach (wordsnums i2 in dict[wordn[1]][next1[a2]])
+                        //Parallel.ForEach(dict[wordn[1]][next1[a2]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i2 =>
                         {
                             wordsnums word1 = i2;
                             //This 'bitwise and' operation is checking to see if any letters from the new word that overlap the former combination.
@@ -707,6 +705,7 @@ namespace FiveWordProblem
                                                                         find2.Append(find[4]);
 
                                                                         results.Add(find2.ToString());
+                                                                        //results.OrderBy(c => c);
                                                                         find5.Add(hash);
                                                                         find5.OrderBy(c => c);
                                                                         //Console.WriteLine(find3);
@@ -725,7 +724,7 @@ namespace FiveWordProblem
                                 }
                             }
                             //counter++;
-                        }
+                        }//);
                     }
                     //counter++;
                 });
@@ -747,7 +746,7 @@ namespace FiveWordProblem
             {
                 int[] next0 = unuseddigits(anabin, max[x]);
                 //foreach (int a1 in next0)
-                Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
+                Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, a1 =>
                 {
                     if (next0[a1] > -1)
                     {
