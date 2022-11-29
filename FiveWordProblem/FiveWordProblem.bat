@@ -6,8 +6,6 @@
 ::The sixth command line number is the number of the dictionary you wish to use.
 ::The seventh command line is the number of words.
 ::The next few numbers are the words and the word lengths (only applicable to method 0). The first number is the minimum of a range, the next is
-::the maximum of a range and the third is the number of words. The last value only works if both of the numbers for the range are the same.
-::Otherwise the number of words is the maximum part of the range minus the minimum part of the range, inclusive. Still a work in progress and
-::needs improvement.
+::the maximum of a range and the third is the number of words. Still a work in progress.
 "FiveWordProblem.exe" "abcdefghijklmnopqrstuvwxyz" 1 1 0 1 0 5 5 5
 pause

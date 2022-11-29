@@ -27,6 +27,7 @@ using System.Security;
 using System.Collections.Generic;
 using System.Security.Principal;
 using System.Runtime.ConstrainedExecution;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace FiveWordProblem
 {
@@ -58,6 +59,8 @@ namespace FiveWordProblem
 
         static int range1 = 5;
         static int range2 = 5;
+        static int rangehigh = 5;
+        static int rangelow = 5;
         static int wordsnum = 5;
 
         //Sets which operation to process: 1 = process1() without the method calls, 0 = process2() with the method calls. Anything else for test().
@@ -178,60 +181,6 @@ namespace FiveWordProblem
                     }
                 }
 
-                //This determines how many characters it needs to push the scan across. If it is 5*5, they use 25 letters so you need to push it once
-                //and you add 1 to that as it is inclusive in the way it is implemented. I formerly made this custom, but I needed to free up space for
-                //a better custom word length thing and having this custom was more of a testing thing and I am skeptical about my beliefs that more
-                //combos might be found by customizing it.
-                max.Clear();
-                if (process != 0)
-                {
-                    for (int i2 = 0; i2 < 5; i2++)
-                    {
-                        wordn.Add(5);
-                    }
-
-                    for (int i2 = 0; i2 < 5; i2++)
-                    { max.Add(2); }
-                }
-                else
-                {
-                    int sum = 0;
-                    if (range1 != range2)
-                    {
-                        int rangea = 0;
-                        int rangeb = 0;
-                        if (range2 > range1)
-                        {
-                            rangea = range1;
-                            rangeb = range2;
-                        }
-                        else
-                        {
-                            rangea = range2;
-                            rangeb = range1;
-                        }
-                        for (int i2 = rangea; i2 < rangeb + 1; i2++)
-                        {
-                            wordn.Add(i2);
-                            sum += i2;
-                        }
-
-                        wordsnum = rangeb - rangea + 1;
-                    }
-                    else
-                    {
-                        for (int i2 = 0; i2 < wordsnum; i2++)
-                        {
-                            wordn.Add(range1);
-                        }
-
-                        sum = range1 * wordsnum;
-                    }
-                    uint push = (uint)(anagram.Length - sum + 1);
-                    for (int i2 = 0; i2 < wordsnum; i2++)
-                    { max.Add(push); }
-                }
-
                 //Initiating that thing that probably does nothing for nothings sake.
                 //TimeBeginPeriod(1);
 
@@ -281,9 +230,59 @@ namespace FiveWordProblem
 
                 anabin = 67108863 ^ anabin;
 
-                elapsed0.Add(sw2.Elapsed.TotalSeconds);
-                sw2.Restart();
 
+                //This determines how many characters it needs to push the scan across. If it is 5*5, they use 25 letters so you need to push it once
+                //and you add 1 to that as it is inclusive in the way it is implemented. I formerly made this custom, but I needed to free up space for
+                //a better custom word length thing and having this custom was more of a testing thing and I am skeptical about my beliefs that more
+                //combos might be found by customizing it.
+                max.Clear();
+                if (process != 0)
+                {
+                    for (int i2 = 0; i2 < 5; i2++)
+                    {
+                        wordn.Add(5);
+                    }
+
+                    for (int i2 = 0; i2 < 5; i2++)
+                    { max.Add(2); }
+                }
+                else
+                {
+                    int sum = 0;
+                    if (range1 != range2)
+                    {
+                        rangelow = 0;
+                        rangehigh = 0;
+                        if (range2 > range1)
+                        {
+                            rangelow = range1;
+                            rangehigh = range2;
+                        }
+                        else
+                        {
+                            rangelow = range2;
+                            rangehigh = range1;
+                        }
+                        for (int i2 = rangelow; i2 < rangehigh + 1; i2++)
+                        {
+                            wordn.Add(i2);
+                        }
+
+                    }
+                    else
+                    {
+                        rangelow = range1;
+                        rangehigh = range2;
+                        wordn.Add(range1);
+                    }
+
+                    for (int i2 = 0; i2 < wordn.Count; i2++)
+                    {
+                        max.Add((uint)(anagram.Length % wordn[i2] + 1));
+                    }
+                }
+
+                elapsed0.Add(sw2.Elapsed.TotalSeconds);
                 sw2.Restart();
 
                 //I believe it is faster to generate these lists as global variables above, then clear them each iteration.
@@ -679,7 +678,7 @@ namespace FiveWordProblem
                                                                     find.Add(word3.word);
                                                                     find.Add(word4.word);
                                                                     find.Sort();
-                                                                    
+
                                                                     //This stringbuilder operation did seem to improve the results a few milliseconds.
                                                                     //If you are new to programming, strings are immutable: they cannot be edited.
                                                                     //When you appear to edit a string, you are in fact creating new strings. So for
@@ -703,7 +702,7 @@ namespace FiveWordProblem
                                                                     //editing the string. I am keeping it here to perhaps test more thoroughly later
                                                                     //on.
                                                                     //string find2 = find[0] + " " + find[1] + " " + find[2] + " " + find[3] + " " + find[4];
-                                                                    
+
                                                                     //Because find2 was set as a StringBuilder, it needs to output it with .ToString().
                                                                     string find3 = find2.ToString();
 
@@ -745,68 +744,63 @@ namespace FiveWordProblem
         private static void process2()
         {
             //This (process2() and addw() are the recursive version of process1(). It appears to be significantly slower.
+            //NOTE: It shouldn't be this slow! Something is awry!
 
-            int[] next0 = unuseddigits(anabin, max[0]);
 
             int count = 0;
             //for (int a1 = 0; a1 < 2; a1++)
-           
-            //foreach (int a1 in next0)
-            Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
+
+
+            //int x = 0;
+            for (int x = wordn.Count - 1; x > -1; x--)
             {
-                int last = 0;
-                for (int x = wordn.Count - 1; x > -1; x--)
+                int[] next0 = unuseddigits(anabin, max[x]);
+                //foreach (int a1 in next0)
+                Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
                 {
-                    if (wordn[x] != last)
+                    if (next0[a1] > -1)
                     {
-                        last = wordn[x];
                         //foreach (wordsnums i1 in dict[wordn[x]][a1])
                         Parallel.ForEach(dict[wordn[x]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
                         {
-                            List<int> wordn2 = new List<int>(wordn);
-
-                            wordsnums[] word0 = new wordsnums[wordn.Count()];
+                            wordsnums[] word0 = new wordsnums[wordsnum];
                             word0[count] = i1;
                             uint bin1 = anabin | word0[count].bin;
-                            if (wordn.Count != 1)
+                            if (wordsnum != 1)
                             {
-                                wordn2.RemoveAt(x);
-                                addw(count, a1, bin1, word0, wordn2);
+                                addw(count, a1, bin1, word0);
                             }
                             else
                             { finalize(word0); }
                             //counter++;
                         });
                     }
-                }
-            });
+                });
+            }
         }
 
-        private static void addw(int count, int start, uint bin, wordsnums[] word0, List<int> wordn2)
+        private static void addw(int count, int start, uint bin, wordsnums[] word0)
         {
             count++;
-            int[] next = unuseddigits(bin, max[count]);
-            for (int a = start; a < next.Length; a++)
-            {
-                int last = 0;
-                for (int x = wordn2.Count - 1; x > -1; x--)
-                {
-                    if (wordn2[x] != last)
-                    {
-                        last = wordn2[x];
-                        //for (int i = 0; i < dict[next[a]].Count; i++)
-                        foreach (wordsnums i in dict[wordn2[x]][next[a]])
-                        {
-                            List<int> wordn3 = new List<int>(wordn2);
 
+            //int x = 0;
+            for (int x = wordn.Count - 1; x > -1; x--)
+            {
+                int[] next = unuseddigits(bin, max[x]);
+                for (int a = start; a < next.Length; a++)
+                {
+                    if (next[a] > -1)
+                    {
+                        //for (int i = 0; i < dict[next[a]].Count; i++)
+                        foreach (wordsnums i in dict[wordn[x]][next[a]])
+                        {
                             word0[count] = i;
                             if ((word0[count].bin & bin) == 0)
                             {
                                 uint bin1 = bin | word0[count].bin;
-                                if (count < wordn.Count - 1)
+                                if (count < wordsnum - 1)
                                 {
-                                    wordn3.RemoveAt(x);
-                                    addw(count, a, bin1, word0, wordn3);
+                                    addw(count, a, bin1, word0);
                                 }
                                 else
                                 {
@@ -841,8 +835,11 @@ namespace FiveWordProblem
 
             if (!find5.Contains(hash))
             {
-                List<char> array = anagram.ToList();
                 int i2 = 0;
+
+                //everything up to now only checks whether the letters are in the anagram. It does not check whether the count
+                //of the letters matches the letters in the anagram.
+                List<char> array = anagram.ToList();
                 for (i2 = 0; i2 < find3.Length; i2++)
                 {
                     if (find3[i2] != ' ')
