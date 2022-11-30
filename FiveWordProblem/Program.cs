@@ -745,13 +745,13 @@ namespace FiveWordProblem
             for (int x = wordn.Count - 1; x > -1; x--)
             {
                 int[] next0 = unuseddigits(anabin, max[x]);
-                for (int a1 = 0; a1 < next0.Length; a1++)
-                //Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, a1 =>
+                //for (int a1 = 0; a1 < next0.Length; a1++)
+                Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, a1 =>
                 {
                     if (next0[a1] > -1)
                     {
-                        foreach (wordsnums i1 in dict[wordn[x]][next0[a1]])
-                        //Parallel.ForEach(dict[wordn[x]][a1], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                        //foreach (wordsnums i1 in dict[wordn[x]][next0[a1]])
+                        Parallel.ForEach(dict[wordn[x]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
                         {
                             wordsnums[] word0 = new wordsnums[wordsnum];
                             word0[count] = i1;
@@ -763,9 +763,9 @@ namespace FiveWordProblem
                             else
                             { finalize(word0); }
                             //counter++;
-                        }//);
+                        });
                     }
-                }//);
+                });
             }
         }
 
