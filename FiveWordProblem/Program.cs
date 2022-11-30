@@ -24,6 +24,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace FiveWordProblem
 {
@@ -60,7 +61,7 @@ namespace FiveWordProblem
         static int wordsnum = 5;
 
         //Sets which operation to process: 1 = process1() without the method calls, 0 = process2() with the method calls. Anything else for test().
-        static uint process = 1;
+        static uint process = 0;
 
         //Whether to sort the results alphabetically. By default off as this adds processing...
         static bool sort = false;
@@ -136,7 +137,7 @@ namespace FiveWordProblem
                 sw2.Start();
 
                 wordn.Clear();
-
+                max.Clear();
                 //This is handling the various command line arguments. My first time doing this.
                 uint dictionary = 0;
                 if (args.Length > 0)
@@ -144,7 +145,7 @@ namespace FiveWordProblem
                     if (args[0] != "") { anagram = args[0]; }
                     if (args.Length > 2)
                     {
-                        if (args[2] == "0") { anagrem = false; }
+                        if (args[2] != "0") { anagrem = false; }
                         if (args.Length > 3)
                         {
                             if (args[3] != "0") { sort = true; }
@@ -166,7 +167,7 @@ namespace FiveWordProblem
                                                 if (args.Length > 9)
                                                 {
                                                     for (int i2 = 9; i2 < args.Length; i2++)
-                                                    { wordn.Add(Convert.ToInt32(args[i2])); }
+                                                    { max.Add(Convert.ToUInt32(args[i2])); }
                                                 }
                                             }
                                         }
@@ -231,20 +232,21 @@ namespace FiveWordProblem
                 //and you add 1 to that as it is inclusive in the way it is implemented. I formerly made this custom, but I needed to free up space for
                 //a better custom word length thing and having this custom was more of a testing thing and I am skeptical about my beliefs that more
                 //combos might be found by customizing it.
-                max.Clear();
-                if (process != 0)
+                if (process == 0)
                 {
                     for (int i2 = 0; i2 < 5; i2++)
                     {
                         wordn.Add(5);
                     }
 
-                    for (int i2 = 0; i2 < 5; i2++)
-                    { max.Add(2); }
+                    if (max.Count == 0)
+                    {
+                        for (int i2 = 0; i2 < 5; i2++)
+                        { max.Add(2); }
+                    }
                 }
                 else
                 {
-                    int sum = 0;
                     if (range1 != range2)
                     {
                         rangelow = 0;
@@ -272,9 +274,12 @@ namespace FiveWordProblem
                         wordn.Add(range1);
                     }
 
-                    for (int i2 = 0; i2 < wordn.Count; i2++)
+                    if (max.Count == 0)
                     {
-                        max.Add((uint)(anagram.Length % wordn[i2] + 1));
+                        for (int i2 = 0; i2 < wordn.Count; i2++)
+                        {
+                            max.Add((uint)(anagram.Length % wordn[i2] + 1));
+                        }
                     }
                 }
 
@@ -427,12 +432,12 @@ namespace FiveWordProblem
                 find5.Clear();
 
                 //Process the results. This is the main part of the program.
-                if (process == 1)
+                if (process == 0)
                 {
                     process1();
                 }
                 else
-                if (process == 0)
+                if (process == 1)
                 {
                     process2();
                 }
@@ -527,207 +532,233 @@ namespace FiveWordProblem
             //ConcurrentDictionary variables. This is my first time actually getting Parallel.For to work at significantly improving speeds! The non-
             //parallel for loops are commented out and retained if you wish to experiment with them.
 
-            //foreach (int a1 in next0)
-            //Parallel.ForEach(next0, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, a1 =>
+            //for (int a1 = 0; a1 < next0.Length; a1++)
             Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, a1 =>
             {
-                //foreach (wordsnums i1 in dict[wordn[0]][a1])
-                Parallel.ForEach(dict[wordn[0]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                if (next0[a1] != -1)
                 {
-                    //Storing of the word/number combination.
-                    wordsnums word0 = i1;
-                    uint bin1 = anabin | word0.bin;
-                    //The next1 arrays are arrays that store the next two least frequently used letters in the alphabet that are still available
-                    //from the remaining letters after discounting the words that have already been amassed. The second one 'pushes' it across one
-                    //so that it grabs all 26 letters of the alphabet always, because otherwise it would only look for the first 25 and would stop
-                    //at the first letter it fails to match a valid combination with. Whether this grabs all combinations as people claim? I don't
-                    //know, I have a feeling it doesn't, but it probably does for the dictionary that was used, which is larger than reasonable.
-                    //Instead of using the unuseddigits method, I think it is slightly faster, even if ugly, to just repeat the code. Kept the method
-                    //calls anyway, just commented out.
-                    //int[] next1 = unuseddigits(bin1, max[1]);
-                    int[] next1 = new int[max[1]];
-                    int i = 0;
-                    for (next1[i] = 0; next1[i] < 26; next1[i]++)
+                    //foreach (wordsnums i1 in dict[wordn[0]][a1])
+                    Parallel.ForEach(dict[wordn[0]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
                     {
-                        //This is bitshifting to the left to detect a value of 1. Since bit shifting pertains to bits, this is working on the binary.
-                        //So it starts at 1, then bit shifts to 10, then bit shifts to 100, then bit shifts to 1000, and so on. Like multiplying by
-                        //10, except every 1 represents a value of 2 not 10. It will do this for 26 letters of the alphabet based on the order of
-                        //least frequent to most frequent. Assuming a standard alphabet, and given next1[i] is the numeric identifier for the character
-                        //in the alphabet, it is shifting left firstly with 'a' (0), 'b' (1), 'c' (2), etc. just adjusted to the the frequency
-                        //'alphabet'.
-                        int m = 1 << next1[i];
-                        //The above, 'm' is the letter in binary. The 'bin1' value is the binary value of the combinations of words to this point. The
-                        //& symbol means that it is performing a 'bit and' operation on the binary representation of the word. If the binary of two
-                        //1's align, it results in a value of 1: it means that letter position is occupied (used). If the bin1 value is 0, then it
-                        //results in 0 (for some reason) and then enters that number as the first missing letter in the array. Then it looks for
-                        //another until i = 2. I recommend (something I haven't really done) using an online bitwise calculator to get a feel for the
-                        //way these things work. I wish I had thought of that, but I kind of just brute forced it and ocassionally debugged it until
-                        //I kind of figured it out for now.
-                        if ((bin1 & m) == 0)
+                        //Storing of the word/number combination.
+                        wordsnums word0 = i1;
+                        uint bin1 = anabin | word0.bin;
+                        //The next1 arrays are arrays that store the next two least frequently used letters in the alphabet that are still available
+                        //from the remaining letters after discounting the words that have already been amassed. The second one 'pushes' it across one
+                        //so that it grabs all 26 letters of the alphabet always, because otherwise it would only look for the first 25 and would stop
+                        //at the first letter it fails to match a valid combination with. Whether this grabs all combinations as people claim? I don't
+                        //know, I have a feeling it doesn't, but it probably does for the dictionary that was used, which is larger than reasonable.
+                        //Instead of using the unuseddigits method, I think it is slightly faster, even if ugly, to just repeat the code. Kept the method
+                        //calls anyway, just commented out.
+                        //int[] next1 = unuseddigits(bin1, max[1]);
+                        int[] next1 = new int[max[1]];
+                        int i = 0;
+                        for (next1[i] = 0; next1[i] < 26; next1[i]++)
                         {
-                            //Heck, this confused me for a bit. So it needs clarifying. The setting of the next1[i] value is done at the loop level
-                            //above. It is continually set as it goes through the alphabet, 0-25. If a missing letter is found, a 1 is added to the
-                            //'i' variable. This switches it from the first value (now permanently set) to the second value, to be set in the 'for'
-                            //iteration. This second value (next[1]) gets set to the same value as the first one (next[0]) with next[i] = next[max1 - 1]
-                            //to resume from where it was detected.
-                            if (i == max[1] - 1) { break; }
-                            else { i++; next1[i] = next1[i - 1]; }
-                        }
-                    }
-
-                    //Goes for the Parellel.For loops above but the comments are becoming too heavy. Notice how each 'for' loop within a 'for' loop
-                    //has an a2 and i2. The 'a#' loops are iterations through the next1 arrays, so each of the loops have a nextimum of 2 iterations
-                    //if the max# values haven't been changed. But it carries through the previous iteration count, eg. int a2 = a1. So if a1 is
-                    //shifted across 1, then so too is each subsequent operation and therefore each iteration is reduced to 1. I'm not sure, but this
-                    //may potentially not grab all results?
-                    for (int a2 = a1; a2 < next1.Length; a2++)
-                    {
-                        //This is the iteration through each dictionary for each word indexed by the least common letter. It is looking through the
-                        //dictionaries that match the next available letter.
-                        //for (int i2 = 0; i2 < dict[next1[a2]].Count; i2++)
-                        foreach (wordsnums i2 in dict[wordn[1]][next1[a2]])
-                        //Parallel.ForEach(dict[wordn[1]][next1[a2]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i2 =>
-                        {
-                            wordsnums word1 = i2;
-                            //This 'bitwise and' operation is checking to see if any letters from the new word that overlap the former combination.
-                            if ((word1.bin & bin1) == 0)
+                            //This is bitshifting to the left to detect a value of 1. Since bit shifting pertains to bits, this is working on the binary.
+                            //So it starts at 1, then bit shifts to 10, then bit shifts to 100, then bit shifts to 1000, and so on. Like multiplying by
+                            //10, except every 1 represents a value of 2 not 10. It will do this for 26 letters of the alphabet based on the order of
+                            //least frequent to most frequent. Assuming a standard alphabet, and given next1[i] is the numeric identifier for the character
+                            //in the alphabet, it is shifting left firstly with 'a' (0), 'b' (1), 'c' (2), etc. just adjusted to the the frequency
+                            //'alphabet'.
+                            int m = 1 << next1[i];
+                            //The above, 'm' is the letter in binary. The 'bin1' value is the binary value of the combinations of words to this point. The
+                            //& symbol means that it is performing a 'bit and' operation on the binary representation of the word. If the binary of two
+                            //1's align, it results in a value of 1: it means that letter position is occupied (used). If the bin1 value is 0, then it
+                            //results in 0 (for some reason) and then enters that number as the first missing letter in the array. Then it looks for
+                            //another until i = 2. I recommend (something I haven't really done) using an online bitwise calculator to get a feel for the
+                            //way these things work. I wish I had thought of that, but I kind of just brute forced it and ocassionally debugged it until
+                            //I kind of figured it out for now.
+                            if ((bin1 & m) == 0)
                             {
-                                //The below is performing a 'bitwise or' operation using the |. This is adding the two words onto one anothers bit
-                                //representation. It will add a 1 next to each letter that was not represented in the previous word combination to
-                                //this point. 1 + 1 will be 1 and 0 + 1 will also be 1. Since it is binary, there is no 2. There is also no way of
-                                //accounting for duplicate characters, which means for anagrams (does not pertain to here) you need to do something
-                                //else but it helps immensely as a check before looping through the letters of a word for instance.
-                                uint bin2 = bin1 | word1.bin;
-                                //Again, the unusueddigits() method call has been replaced by the code here to set the next2, next3, next4, etc.
-                                //arrays.
-                                //int[] next2 = unuseddigits(bin2, max[2]);
-                                int[] next2 = new int[max[2]];
-                                i = 0;
-                                for (next2[i] = 0; next2[i] < 26; next2[i]++)
-                                {
-                                    int m = 1 << next2[i];
-                                    if ((bin2 & m) == 0)
-                                    {
-                                        if (i == max[2] - 1) { break; }
-                                        else { i++; next2[i] = next2[i - 1]; }
-                                    }
-                                }
-
-                                for (int a3 = a2; a3 < next2.Length; a3++)
-                                {
-                                    //for (int i3 = 0; i3 < dict[next2[a3]].Count; i3++)
-                                    foreach (wordsnums i3 in dict[wordn[2]][next2[a3]])
-                                    {
-                                        wordsnums word2 = i3;
-                                        if ((word2.bin & bin2) == 0)
-                                        {
-                                            uint bin3 = bin2 | word2.bin;
-                                            //int[] next3 = unuseddigits(bin3, max[3]);
-                                            int[] next3 = new int[max[3]];
-                                            i = 0;
-                                            for (next3[i] = 0; next3[i] < 26; next3[i]++)
-                                            {
-                                                int m = 1 << next3[i];
-                                                if ((bin3 & m) == 0)
-                                                {
-                                                    if (i == max[3] - 1) { break; }
-                                                    else { i++; next3[i] = next3[i - 1]; }
-                                                }
-                                            }
-
-                                            for (int a4 = a3; a4 < next3.Length; a4++)
-                                            {
-                                                //for (int i4 = 0; i4 < dict[next3[a4]].Count; i4++)
-                                                foreach (wordsnums i4 in dict[wordn[3]][next3[a4]])
-                                                {
-                                                    wordsnums word3 = i4;
-                                                    if ((word3.bin & bin3) == 0)
-                                                    {
-                                                        uint bin4 = bin3 | word3.bin;
-                                                        //int[] next4 = unuseddigits(bin4, max[4]);
-                                                        int[] next4 = new int[max[4]];
-                                                        i = 0;
-                                                        for (next4[i] = 0; next4[i] < 26; next4[i]++)
-                                                        {
-                                                            int m = 1 << next4[i];
-                                                            if ((bin4 & m) == 0)
-                                                            {
-                                                                if (i == max[4] - 1) { break; }
-                                                                else { i++; next4[i] = next4[i - 1]; }
-                                                            }
-                                                        }
-
-                                                        for (int a5 = a4; a5 < next4.Length; a5++)
-                                                        {
-                                                            //for (int i5 = 0; i5 < dict[next4[a5]].Count; i5++)
-                                                            foreach (wordsnums i5 in dict[wordn[4]][next4[a5]])
-                                                            {
-                                                                wordsnums word4 = i5;
-                                                                if ((word4.bin & bin4) == 0)
-                                                                {
-                                                                    int hash = word0.word.GetHashCode() + word1.word.GetHashCode() + word2.word.GetHashCode() + word3.word.GetHashCode() + word4.word.GetHashCode();
-
-                                                                    //This looks for this hash calculation in a list of stored calculations to see
-                                                                    //if the combination has been entered before. If it hasn't (! means it does not
-                                                                    //contain the hash), it then opens up a loop and adds the string version of that
-                                                                    //result to results and the hash to find5.
-                                                                    if (!find5.Contains(hash))
-                                                                    {
-                                                                        //if it reaches this point, it has identified 5 words that do not share any two
-                                                                        //letters. It then begins the admittedly slow operation of adding the words into
-                                                                        //a list, sorting that list, then storing that combination into a list that ca
-                                                                        //then be searched.
-                                                                        List<string> find = new List<string>();
-                                                                        find.Add(word0.word);
-                                                                        find.Add(word1.word);
-                                                                        find.Add(word2.word);
-                                                                        find.Add(word3.word);
-                                                                        find.Add(word4.word);
-                                                                        find.Sort();
-
-                                                                        //This stringbuilder operation did seem to improve the results a few milliseconds.
-                                                                        //If you are new to programming, strings are immutable: they cannot be edited.
-                                                                        //When you appear to edit a string, you are in fact creating new strings. So for
-                                                                        //every += or + in a string, you are doing something that needs to continually
-                                                                        //make copies of that string. StringBuilder makes it more efficient. It is
-                                                                        //especially crucial for much larger strings, but here it appears to save a few
-                                                                        //milliseconds you wouldn't otherwise notice despite needing to convert back into
-                                                                        //a string?
-                                                                        StringBuilder find2 = new StringBuilder();
-                                                                        find2.Append(find[0]);
-                                                                        find2.Append(" ");
-                                                                        find2.Append(find[1]);
-                                                                        find2.Append(" ");
-                                                                        find2.Append(find[2]);
-                                                                        find2.Append(" ");
-                                                                        find2.Append(find[3]);
-                                                                        find2.Append(" ");
-                                                                        find2.Append(find[4]);
-
-                                                                        results.Add(find2.ToString());
-                                                                        //results.OrderBy(c => c);
-                                                                        find5.Add(hash);
-                                                                        find5.OrderBy(c => c);
-                                                                        //Console.WriteLine(find3);
-                                                                    }
-                                                                }
-                                                                //counter++;
-                                                            }
-                                                        }
-                                                    }
-                                                    //counter++;
-                                                }
-                                            }
-                                        }
-                                        //counter++;
-                                    }
-                                }
+                                //Heck, this confused me for a bit. So it needs clarifying. The setting of the next1[i] value is done at the loop level
+                                //above. It is continually set as it goes through the alphabet, 0-25. If a missing letter is found, a 1 is added to the
+                                //'i' variable. This switches it from the first value (now permanently set) to the second value, to be set in the 'for'
+                                //iteration. This second value (next[1]) gets set to the same value as the first one (next[0]) with next[i] = next[max1 - 1]
+                                //to resume from where it was detected.
+                                if (i == max[1] - 1) { break; }
+                                else { i++; next1[i] = next1[i - 1]; }
                             }
-                            //counter++;
-                        }//);
-                    }
-                    //counter++;
-                });
+                        }
+                        if (next1[i] == 26)
+                        {
+                            for (i = i; i < next1.Length; i++)
+                            { next1[i] = -1; }
+                        }
+
+                        //Goes for the Parellel.For loops above but the comments are becoming too heavy. Notice how each 'for' loop within a 'for' loop
+                        //has an a2 and i2. The 'a#' loops are iterations through the next1 arrays, so each of the loops have a nextimum of 2 iterations
+                        //if the max# values haven't been changed. But it carries through the previous iteration count, eg. int a2 = a1. So if a1 is
+                        //shifted across 1, then so too is each subsequent operation and therefore each iteration is reduced to 1. I'm not sure, but this
+                        //may potentially not grab all results?
+                        for (int a2 = a1; a2 < next1.Length; a2++)
+                        {
+                            if (next1[a2] == -1) { break; }
+                            //This is the iteration through each dictionary for each word indexed by the least common letter. It is looking through the
+                            //dictionaries that match the next available letter.
+                            //for (int i2 = 0; i2 < dict[next1[a2]].Count; i2++)
+                            foreach (wordsnums i2 in dict[wordn[1]][next1[a2]])
+                            //Parallel.ForEach(dict[wordn[1]][next1[a2]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i2 =>
+                            {
+                                wordsnums word1 = i2;
+                                //This 'bitwise and' operation is checking to see if any letters from the new word that overlap the former combination.
+                                if ((word1.bin & bin1) == 0)
+                                {
+                                    //The below is performing a 'bitwise or' operation using the |. This is adding the two words onto one anothers bit
+                                    //representation. It will add a 1 next to each letter that was not represented in the previous word combination to
+                                    //this point. 1 + 1 will be 1 and 0 + 1 will also be 1. Since it is binary, there is no 2. There is also no way of
+                                    //accounting for duplicate characters, which means for anagrams (does not pertain to here) you need to do something
+                                    //else but it helps immensely as a check before looping through the letters of a word for instance.
+                                    uint bin2 = bin1 | word1.bin;
+                                    //Again, the unusueddigits() method call has been replaced by the code here to set the next2, next3, next4, etc.
+                                    //arrays.
+                                    //int[] next2 = unuseddigits(bin2, max[2]);
+                                    int[] next2 = new int[max[2]];
+                                    i = 0;
+                                    for (next2[i] = 0; next2[i] < 26; next2[i]++)
+                                    {
+                                        int m = 1 << next2[i];
+                                        if ((bin2 & m) == 0)
+                                        {
+                                            if (i == max[2] - 1) { break; }
+                                            else { i++; next2[i] = next2[i - 1]; }
+                                        }
+                                    }
+                                    if (next2[i] == 26)
+                                    {
+                                        for (i = i; i < next2.Length; i++)
+                                        { next2[i] = -1; }
+                                    }
+
+                                    for (int a3 = a2; a3 < next2.Length; a3++)
+                                    {
+                                        if (next2[a3] == -1) { break; }
+                                        //for (int i3 = 0; i3 < dict[next2[a3]].Count; i3++)
+                                        foreach (wordsnums i3 in dict[wordn[2]][next2[a3]])
+                                        {
+                                            wordsnums word2 = i3;
+                                            if ((word2.bin & bin2) == 0)
+                                            {
+                                                uint bin3 = bin2 | word2.bin;
+                                                //int[] next3 = unuseddigits(bin3, max[3]);
+                                                int[] next3 = new int[max[3]];
+                                                i = 0;
+                                                for (next3[i] = 0; next3[i] < 26; next3[i]++)
+                                                {
+                                                    int m = 1 << next3[i];
+                                                    if ((bin3 & m) == 0)
+                                                    {
+                                                        if (i == max[3] - 1) { break; }
+                                                        else { i++; next3[i] = next3[i - 1]; }
+                                                    }
+                                                }
+                                                if (next3[i] == 26)
+                                                {
+                                                    for (i = i; i < next3.Length; i++)
+                                                    { next3[i] = -1; }
+                                                }
+
+                                                for (int a4 = a3; a4 < next3.Length; a4++)
+                                                {
+                                                    if (next3[a4] == -1) { break; }
+                                                    //for (int i4 = 0; i4 < dict[next3[a4]].Count; i4++)
+                                                    foreach (wordsnums i4 in dict[wordn[3]][next3[a4]])
+                                                    {
+                                                        wordsnums word3 = i4;
+                                                        if ((word3.bin & bin3) == 0)
+                                                        {
+                                                            uint bin4 = bin3 | word3.bin;
+                                                            //int[] next4 = unuseddigits(bin4, max[4]);
+                                                            int[] next4 = new int[max[4]];
+                                                            i = 0;
+                                                            for (next4[i] = 0; next4[i] < 26; next4[i]++)
+                                                            {
+                                                                int m = 1 << next4[i];
+                                                                if ((bin4 & m) == 0)
+                                                                {
+                                                                    if (i == max[4] - 1) { break; }
+                                                                    else { i++; next4[i] = next4[i - 1]; }
+                                                                }
+                                                            }
+                                                            if (next4[i] == 26)
+                                                            {
+                                                                for (i = i; i < next4.Length; i++)
+                                                                { next4[i] = -1; }
+                                                            }
+
+                                                            for (int a5 = a4; a5 < next4.Length; a5++)
+                                                            {
+                                                                if (next4[a5] == -1) { break; }
+                                                                //for (int i5 = 0; i5 < dict[next4[a5]].Count; i5++)
+                                                                foreach (wordsnums i5 in dict[wordn[4]][next4[a5]])
+                                                                {
+                                                                    wordsnums word4 = i5;
+                                                                    if ((word4.bin & bin4) == 0)
+                                                                    {
+                                                                        int hash = word0.word.GetHashCode() + word1.word.GetHashCode() + word2.word.GetHashCode() + word3.word.GetHashCode() + word4.word.GetHashCode();
+
+                                                                        //This looks for this hash calculation in a list of stored calculations to see
+                                                                        //if the combination has been entered before. If it hasn't (! means it does not
+                                                                        //contain the hash), it then opens up a loop and adds the string version of that
+                                                                        //result to results and the hash to find5.
+                                                                        if (!find5.Contains(hash))
+                                                                        {
+                                                                            //if it reaches this point, it has identified 5 words that do not share any two
+                                                                            //letters. It then begins the admittedly slow operation of adding the words into
+                                                                            //a list, sorting that list, then storing that combination into a list that ca
+                                                                            //then be searched.
+                                                                            List<string> find = new List<string>();
+                                                                            find.Add(word0.word);
+                                                                            find.Add(word1.word);
+                                                                            find.Add(word2.word);
+                                                                            find.Add(word3.word);
+                                                                            find.Add(word4.word);
+                                                                            find.Sort();
+
+                                                                            //This stringbuilder operation did seem to improve the results a few milliseconds.
+                                                                            //If you are new to programming, strings are immutable: they cannot be edited.
+                                                                            //When you appear to edit a string, you are in fact creating new strings. So for
+                                                                            //every += or + in a string, you are doing something that needs to continually
+                                                                            //make copies of that string. StringBuilder makes it more efficient. It is
+                                                                            //especially crucial for much larger strings, but here it appears to save a few
+                                                                            //milliseconds you wouldn't otherwise notice despite needing to convert back into
+                                                                            //a string?
+                                                                            StringBuilder find2 = new StringBuilder();
+                                                                            find2.Append(find[0]);
+                                                                            find2.Append(" ");
+                                                                            find2.Append(find[1]);
+                                                                            find2.Append(" ");
+                                                                            find2.Append(find[2]);
+                                                                            find2.Append(" ");
+                                                                            find2.Append(find[3]);
+                                                                            find2.Append(" ");
+                                                                            find2.Append(find[4]);
+
+                                                                            results.Add(find2.ToString());
+                                                                            //results.OrderBy(c => c);
+                                                                            find5.Add(hash);
+                                                                            find5.OrderBy(c => c);
+                                                                            //Console.WriteLine(find3);
+                                                                        }
+                                                                    }
+                                                                    //counter++;
+                                                                }
+                                                            }
+                                                        }
+                                                        //counter++;
+                                                    }
+                                                }
+                                            }
+                                            //counter++;
+                                        }
+                                    }
+                                }
+                                //counter++;
+                            }//);
+                        }
+                        //counter++;
+                    });
+                }
             });
         }
 
@@ -748,7 +779,7 @@ namespace FiveWordProblem
                 //for (int a1 = 0; a1 < next0.Length; a1++)
                 Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, a1 =>
                 {
-                    if (next0[a1] > -1)
+                    if (next0[a1] != -1)
                     {
                         //foreach (wordsnums i1 in dict[wordn[x]][next0[a1]])
                         Parallel.ForEach(dict[wordn[x]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
@@ -779,26 +810,24 @@ namespace FiveWordProblem
                 int[] next = unuseddigits(bin, max[x]);
                 for (int a = start; a < next.Length; a++)
                 {
-                    if (next[a] > -1)
+                    if (next[a] == -1) { break; }
+                    //for (int i = 0; i < dict[next[a]].Count; i++)
+                    foreach (wordsnums i in dict[wordn[x]][next[a]])
                     {
-                        //for (int i = 0; i < dict[next[a]].Count; i++)
-                        foreach (wordsnums i in dict[wordn[x]][next[a]])
+                        word0[count] = i;
+                        if ((word0[count].bin & bin) == 0)
                         {
-                            word0[count] = i;
-                            if ((word0[count].bin & bin) == 0)
+                            uint bin1 = bin | word0[count].bin;
+                            if (count < wordsnum - 1)
                             {
-                                uint bin1 = bin | word0[count].bin;
-                                if (count < wordsnum - 1)
-                                {
-                                    addw(count, a, bin1, word0);
-                                }
-                                else
-                                {
-                                    finalize(word0);
-                                }
+                                addw(count, a, bin1, word0);
                             }
-                            //counter++;
+                            else
+                            {
+                                finalize(word0);
+                            }
                         }
+                        //counter++;
                     }
                 }
             }
@@ -871,8 +900,6 @@ namespace FiveWordProblem
         private static int[] unuseddigits(uint bin, uint len)
         {
             int[] nextdigit = new int[len];
-            for (int i2 = 0; i2 < len; i2++)
-            { nextdigit[i2] = -1; };
             int i = 0;
             for (nextdigit[i] = 0; nextdigit[i] < 26; nextdigit[i]++)
             {
@@ -883,7 +910,11 @@ namespace FiveWordProblem
                     else { i++; nextdigit[i] = nextdigit[i - 1]; }
                 }
             }
-            if (nextdigit[i] == 26) { nextdigit[i] = -1; }
+            if (nextdigit[i] == 26)
+            {
+                for (i = i; i < nextdigit.Length; i++)
+                { nextdigit[i] = -1; }
+            }
             return nextdigit;
         }
 
