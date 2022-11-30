@@ -276,9 +276,9 @@ namespace FiveWordProblem
 
                     if (max.Count == 0)
                     {
-                        for (int i2 = 0; i2 < wordn.Count; i2++)
+                        for (int i2 = wordsnum; i2 > 0; i2--)
                         {
-                            max.Add((uint)(anagram.Length % wordn[i2] + 1));
+                            max.Add((uint)(anagram.Length - wordn.Count * rangelow + 1));
                         }
                     }
                 }
@@ -773,7 +773,7 @@ namespace FiveWordProblem
 
 
             //int x = 0;
-            for (int x = wordn.Count - 1; x > -1; x--)
+            for (int x = max.Count - 1; x > -1; x--)
             {
                 int[] next0 = unuseddigits(anabin, max[x]);
                 //for (int a1 = 0; a1 < next0.Length; a1++)
@@ -805,7 +805,7 @@ namespace FiveWordProblem
             count++;
 
             //int x = 0;
-            for (int x = wordn.Count - 1; x > -1; x--)
+            for (int x = max.Count - 1; x > -1; x--)
             {
                 int[] next = unuseddigits(bin, max[x]);
                 for (int a = start; a < next.Length; a++)
