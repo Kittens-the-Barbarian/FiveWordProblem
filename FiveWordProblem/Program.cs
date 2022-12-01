@@ -25,6 +25,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
 using static System.Net.Mime.MediaTypeNames;
+using System.Collections.Generic;
 
 namespace FiveWordProblem
 {
@@ -276,9 +277,10 @@ namespace FiveWordProblem
 
                     if (max.Count == 0)
                     {
-                        for (int i2 = wordsnum; i2 > 0; i2--)
+                        uint range = (uint)(26 - rangelow * wordsnum + 1);
+                        for (int i2 = wordn.Count-1; i2 > -1; i2--)
                         {
-                            max.Add((uint)(anagram.Length - wordn.Count * rangelow + 1));
+                            max.Add(range);
                         }
                     }
                 }
@@ -457,6 +459,7 @@ namespace FiveWordProblem
                     {
                         List<string> results2 = results.ToList();
                         results2.Sort();
+                        results2.Sort((a, b) => b.Length.CompareTo(a.Length));
 
                         foreach (string str in results2)
                         {
@@ -773,9 +776,10 @@ namespace FiveWordProblem
 
 
             //int x = 0;
-            for (int x = max.Count - 1; x > -1; x--)
+            for (int x = wordn.Count - 1; x > -1; x--)
             {
                 int[] next0 = unuseddigits(anabin, max[x]);
+
                 //for (int a1 = 0; a1 < next0.Length; a1++)
                 Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, a1 =>
                 {
@@ -786,7 +790,10 @@ namespace FiveWordProblem
                         {
                             wordsnums[] word0 = new wordsnums[wordsnum];
                             word0[count] = i1;
-                            uint bin1 = anabin | word0[count].bin;
+                            //The below uses up characters that prevents additional words featuring doubled letters in the original anagram from being
+                            //considered. Okay for anagrams with no duplicate live the five by five problem, not okay for general anagrams.
+                            //uint bin1 = anabin | word0[count].bin;
+                            uint bin1 = (uint)word0[count].word.Length;
                             if (wordsnum != 1)
                             {
                                 addw(count, a1, bin1, word0);
@@ -805,7 +812,7 @@ namespace FiveWordProblem
             count++;
 
             //int x = 0;
-            for (int x = max.Count - 1; x > -1; x--)
+            for (int x = wordn.Count - 1; x > -1; x--)
             {
                 int[] next = unuseddigits(bin, max[x]);
                 for (int a = start; a < next.Length; a++)
@@ -815,9 +822,11 @@ namespace FiveWordProblem
                     foreach (wordsnums i in dict[wordn[x]][next[a]])
                     {
                         word0[count] = i;
-                        if ((word0[count].bin & bin) == 0)
+                        //if ((word0[count].bin & bin) == 0)
+                        if ((bin + word0[count].word.Length) <= anagram.Length)
                         {
-                            uint bin1 = bin | word0[count].bin;
+                            //uint bin1 = bin | word0[count].bin;
+                            uint bin1 = bin + (uint)word0[count].word.Length;
                             if (count < wordsnum - 1)
                             {
                                 addw(count, a, bin1, word0);
@@ -845,6 +854,8 @@ namespace FiveWordProblem
                 for (int i0 = 0; i0 < word0.Length; i0++)
                 { find.Add(word0[i0].word); }
                 find.Sort();
+                find.Sort((a, b) => b.Length.CompareTo(a.Length));
+
                 StringBuilder find2 = new StringBuilder();
                 find2.Append(find[0]);
                 for (int i0 = 1; i0 < find.Count; i0++)
