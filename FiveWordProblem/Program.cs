@@ -1,23 +1,18 @@
 ﻿//I am a late bloomer in programming. Ii is a long story, but I needed it to try and get out of a mentally abusive situation that ended in my
 //brothers suicide in January 2021. I'm not the most intelligent person, I find learning about this stuff extremely intimidating and extremely
-//hard, but I am pushing on despite my limitations. I am not educated in any way in programming. I have certainly never earnt a cent from programming.
-//In fact, this is my first in many areas: it is my first GitHub submission; it is my first program that I have successfully implemented multi-
-//threading in (through Parallel.For); it is what started me on the path of using bitwise (kind of worked on this and an anagram program in tandem);
-//it is my first C# console app (until now, had been using WinForms only); and it is the first time I have ever submitted code publicly.
+//hard, but I am pushing on despite my limitations.
 //
 //I do not find learning easy. I tried watching tutorials, but they don't move at the pace I need them to. They spend too long on uninteresting stuff,
 //then go too quickly in other areas, and frankly I think I learn better without distraction. I do not learn by reading, it bores me. I only ever
 //read bits and pieces here and there when I need them. While I have been programing in C# for about 2 years now, much of that time has been obsessing
-//on problems not strictly related to programming (for example, I have been wrestling over arbitrary precision decimal root operations for aeons), so
-//I do not consider I would have what would amount to anywhere near 2 years worth of programming experience in C#.
+//on problems not strictly related to programming (for example, I have been wrestling over arbitrary precision decimal root operations for aeons and
+//still haven't resolved it), so I do not consider I would have what would amount to anywhere near 2 years worth of programming experience in C#.
 //
 //I am contributing this late for a few reasons: 1) it is the only C# contender; 2) it seems I may have gotten it efficient, but who knows what it will
 //test at (given some CPU's seem to start up slower going by my two laptops) so might as well share what I have learnt; 3) I am not good at my syntax,
 //maybe this can be significantly condensed, but I do feel verbose programming like mine may be easier for others who're not professionals who don't
 //have years of education in the area to understand and I'm hoping this will help others who look at the other code submissions and start to seizure
-//and bleed from the nose as I do. I think the main purpose of this is as a teaching aid.
-//
-//Regards, Kirk Dressler.
+//and bleed from the nose as I do. I think the main purpose of this is as a teaching aid for any teach-yourself individual like myself.
 
 using System.Text;
 using System.Collections.Concurrent;
@@ -25,13 +20,14 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
 using static System.Net.Mime.MediaTypeNames;
+using System.Collections.Generic;
 
 namespace FiveWordProblem
 {
     internal class Program
     {
-        //The dictionary List of Lists of Lists of 'wordnums'. This is a List of 'dictionaries' for each of the required character counts for each and
-        //letter of the alphabet, so 26 in total (0-25). The full wordlist will be sorted into these dictionaries indexed by their least frequently
+        //The dictionary List of Lists of Lists of 'wordnums'. This is a List of word lists for each of the required character counts for each and
+        //letter of the alphabet, so 26 in total (0-25). The full wordlist will be sorted into these lists indexed by their least frequently
         //occuring letter. Each word will be stored as a custom variable I have named 'wordsnums'. This variable contains the string representation of
         //the word and the number representation of the word that we will later perform bitwise operations on.
         static List<List<List<wordsnums>>> dict = new List<List<List<wordsnums>>>();
@@ -128,7 +124,6 @@ namespace FiveWordProblem
 
             for (int i = 0; i < rep; i++)
             {
-                Thread.Sleep(1);
                 //Creating and starting the stopwatch.
                 Stopwatch sw = new Stopwatch();
                 Stopwatch sw2 = new Stopwatch();
@@ -276,9 +271,10 @@ namespace FiveWordProblem
 
                     if (max.Count == 0)
                     {
-                        for (int i2 = wordsnum; i2 > 0; i2--)
+                        uint range = (uint)(26 - rangelow * wordsnum + 1);
+                        for (int i2 = wordn.Count-1; i2 > -1; i2--)
                         {
-                            max.Add((uint)(anagram.Length - wordn.Count * rangelow + 1));
+                            max.Add(range);
                         }
                     }
                 }
@@ -457,6 +453,7 @@ namespace FiveWordProblem
                     {
                         List<string> results2 = results.ToList();
                         results2.Sort();
+                        results2.Sort((a, b) => b.Length.CompareTo(a.Length));
 
                         foreach (string str in results2)
                         {
@@ -525,20 +522,15 @@ namespace FiveWordProblem
             int[] next0 = unuseddigits(anabin, max[0]);
 
             //Parallel.For is for multithreaded processing. For whatever reason, doing two Parallel.For loops within one another seemed to tweak the
-            //performance. I am not entirely clear on what the nextDegreeOfParallelism is, but I don't believe it is the same as how many threads
-            //your processor has. Since there is just 2 iterations of the first loop, I have set that to 2. I seemed to get optimal performance out
-            //of setting the other to 7 times the number of processors. If you wish to use Parallel.For, you need to be mindful at least that
-            //variables need to be thread safe. Especially if you're going to alter variables, you may need to use ConcurrentBag/ConcurrentQueue/
-            //ConcurrentDictionary variables. This is my first time actually getting Parallel.For to work at significantly improving speeds! The non-
-            //parallel for loops are commented out and retained if you wish to experiment with them.
+            //performance.
 
             //for (int a1 = 0; a1 < next0.Length; a1++)
-            Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, a1 =>
+            Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
             {
                 if (next0[a1] != -1)
                 {
                     //foreach (wordsnums i1 in dict[wordn[0]][a1])
-                    Parallel.ForEach(dict[wordn[0]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7 }, i1 =>
+                    Parallel.ForEach(dict[wordn[0]][next0[a1]], new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 7}, i1 =>
                     {
                         //Storing of the word/number combination.
                         wordsnums word0 = i1;
@@ -773,11 +765,12 @@ namespace FiveWordProblem
 
 
             //int x = 0;
-            for (int x = max.Count - 1; x > -1; x--)
+            for (int x = wordn.Count - 1; x > -1; x--)
             {
                 int[] next0 = unuseddigits(anabin, max[x]);
+
                 //for (int a1 = 0; a1 < next0.Length; a1++)
-                Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, a1 =>
+                Parallel.For(0, next0.Length, new ParallelOptions { MaxDegreeOfParallelism = next0.Length }, a1 =>
                 {
                     if (next0[a1] != -1)
                     {
@@ -786,7 +779,10 @@ namespace FiveWordProblem
                         {
                             wordsnums[] word0 = new wordsnums[wordsnum];
                             word0[count] = i1;
-                            uint bin1 = anabin | word0[count].bin;
+                            //The below uses up characters that prevents additional words featuring doubled letters in the original anagram from being
+                            //considered. Okay for anagrams with no duplicate live the five by five problem, not okay for general anagrams.
+                            //uint bin1 = anabin | word0[count].bin;
+                            uint bin1 = (uint)word0[count].word.Length;
                             if (wordsnum != 1)
                             {
                                 addw(count, a1, bin1, word0);
@@ -805,7 +801,7 @@ namespace FiveWordProblem
             count++;
 
             //int x = 0;
-            for (int x = max.Count - 1; x > -1; x--)
+            for (int x = wordn.Count - 1; x > -1; x--)
             {
                 int[] next = unuseddigits(bin, max[x]);
                 for (int a = start; a < next.Length; a++)
@@ -815,9 +811,11 @@ namespace FiveWordProblem
                     foreach (wordsnums i in dict[wordn[x]][next[a]])
                     {
                         word0[count] = i;
-                        if ((word0[count].bin & bin) == 0)
+                        //if ((word0[count].bin & bin) == 0)
+                        if ((bin + word0[count].word.Length) <= anagram.Length)
                         {
-                            uint bin1 = bin | word0[count].bin;
+                            //uint bin1 = bin | word0[count].bin;
+                            uint bin1 = bin + (uint)word0[count].word.Length;
                             if (count < wordsnum - 1)
                             {
                                 addw(count, a, bin1, word0);
@@ -845,6 +843,8 @@ namespace FiveWordProblem
                 for (int i0 = 0; i0 < word0.Length; i0++)
                 { find.Add(word0[i0].word); }
                 find.Sort();
+                find.Sort((a, b) => b.Length.CompareTo(a.Length));
+
                 StringBuilder find2 = new StringBuilder();
                 find2.Append(find[0]);
                 for (int i0 = 1; i0 < find.Count; i0++)
